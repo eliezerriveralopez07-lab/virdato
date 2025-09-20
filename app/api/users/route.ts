@@ -1,17 +1,22 @@
-import { NextResponse } from "next/server";
-import { db } from "../../../src/db/client";
-import { users } from "../../../src/db/schema";
-import { eq } from "drizzle-orm";
-
-export const runtime = "nodejs"; // required for postgres-js
+import { NextResponse } from 'next/server';
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  return NextResponse.json(await db.select().from(users));
+  return NextResponse.json({ ok: true, users: [] });
 }
 
 export async function POST(req: Request) {
-  const body = await req.json();
-  await db.insert(users).values({ name: body.name, age: body.age, email: body.email });
-  const [created] = await db.select().from(users).where(eq(users.email, body.email));
-  return NextResponse.json(created, { status: 201 });
+  try {
+    const body = await req.json();
+    if (!body?.name || !body?.email) {
+      return NextResponse.json(
+        { ok: false, error: 'name and email required' },
+        { status: 400 }
+      );
+    }
+    // TODO: insert into DB
+    return NextResponse.json({ ok: true, received: body }, { status: 201 });
+  } catch {
+    return NextResponse.json({ ok: false, error: 'Invalid JSON' }, { status: 400 });
+  }
 }
