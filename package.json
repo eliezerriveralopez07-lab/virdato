@@ -21,7 +21,5 @@
     "drizzle-kit": "^0.24.0",
     "dotenv": "^16.4.5"
   },
-  "engines": {
-    "node": "20.x"
-  }
+  "engines": { "node": "20.x" }
 }
