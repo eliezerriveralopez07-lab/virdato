@@ -37,7 +37,6 @@ export async function POST(req: Request) {
     .single();
 
   if (error) {
-    // Unique email conflict returns Postgres 23505
     if ((error as any).code === '23505' || /duplicate key/i.test(error.message))
       return NextResponse.json({ ok: false, error: 'email already exists' }, { status: 409 });
     return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
