@@ -11,7 +11,8 @@ export async function GET() {
     const rows = await db.select().from(users);
     return NextResponse.json(rows);
   } catch (e: any) {
-    return NextResponse.json({ ok: false, error: String(e) }, { status: 500 });
+    const msg = e?.cause?.message || e?.message || String(e);
+    return NextResponse.json({ ok: false, error: msg }, { status: 500 });
   }
 }
 
@@ -19,11 +20,17 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     await db.insert(users).values({
-      name: body.name, age: body.age, email: body.email,
+      name: body.name,
+      age: body.age,
+      email: body.email,
     });
-    const [created] = await db.select().from(users).where(eq(users.email, body.email));
+    const [created] = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, body.email));
     return NextResponse.json(created, { status: 201 });
   } catch (e: any) {
-    return NextResponse.json({ ok: false, error: String(e) }, { status: 500 });
+    const msg = e?.cause?.message || e?.message || String(e);
+    return NextResponse.json({ ok: false, error: msg }, { status: 500 });
   }
 }
