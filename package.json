@@ -8,18 +8,22 @@
     "start": "next start"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.45.0",
+    "drizzle-orm": "^0.44.5",
     "next": "14.2.5",
+    "postgres": "^3.4.7",
     "react": "18.3.1",
-    "react-dom": "18.3.1",
-    "@supabase/supabase-js": "^2.45.0"
+    "react-dom": "18.3.1"
   },
   "devDependencies": {
-    "typescript": "^5.5.4",
     "@types/node": "^20.11.30",
     "@types/react": "^18.2.46",
     "@types/react-dom": "^18.2.18",
+    "dotenv": "^16.6.1",
     "drizzle-kit": "^0.24.0",
-    "dotenv": "^16.4.5"
+    "typescript": "^5.5.4"
   },
-  "engines": { "node": "20.x" }
+  "engines": {
+    "node": "20.x"
+  }
 }
