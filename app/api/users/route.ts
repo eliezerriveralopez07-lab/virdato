@@ -1,3 +1,4 @@
+// app/api/users/route.ts
 import { NextResponse } from "next/server";
 import { db } from "../../../src/db/client";
 import { users } from "../../../src/db/schema";
