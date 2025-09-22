@@ -1,4 +1,3 @@
-// app/api/users/route.ts
 import { NextResponse } from "next/server";
 import { getDb } from "../../../src/db/client";
 import { users } from "../../../src/db/schema";
@@ -21,18 +20,12 @@ export async function POST(req: Request) {
   try {
     const db = getDb();
     const body = await req.json();
-    await db.insert(users).values({
-      name: body.name,
-      age: body.age,
-      email: body.email,
-    });
-    const [created] = await db
-      .select()
-      .from(users)
-      .where(eq(users.email, body.email));
+    await db.insert(users).values({ name: body.name, age: body.age, email: body.email });
+    const [created] = await db.select().from(users).where(eq(users.email, body.email));
     return NextResponse.json(created, { status: 201 });
   } catch (e: any) {
     const msg = e?.cause?.message || e?.message || String(e);
     return NextResponse.json({ ok: false, error: msg }, { status: 500 });
   }
 }
+
