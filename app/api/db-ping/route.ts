@@ -1,11 +1,26 @@
-import postgres from "postgres";
+// app/api/db-ping/route.ts
+import { redis } from "@/lib/redis";
+
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   try {
-    const sql = postgres(process.env.DATABASE_URL!, { prepare: false });
-    const [row] = await sql`select now() as now, current_user as user, current_database() as db`;
-    return Response.json({ ok: true, row });
-  } catch (e:any) {
-    return Response.json({ ok: false, error: String(e) }, { status: 500 });
+    const pong = await redis.ping();
+    return new Response(JSON.stringify({ pong }), {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    });
+  } catch (err: any) {
+    return new Response(
+      JSON.stringify({
+        error: err?.message ?? String(err),
+        envSeenByServer: {
+          UPSTASH_REDIS_REST_URL: !!process.env.UPSTASH_REDIS_REST_URL,
+          UPSTASH_REDIS_REST_TOKEN: !!process.env.UPSTASH_REDIS_REST_TOKEN,
+        },
+      }),
+      { status: 500, headers: { "content-type": "application/json" } }
+    );
   }
 }
