@@ -1,5 +1,4 @@
-// app/api/debug/ping/route.ts
-export const runtime = "nodejs"; // safest in dev; you can switch to "edge" later
+export const runtime = "nodejs"; // 
 
 export async function GET() {
   return new Response(JSON.stringify({ pong: "PONG" }), {
@@ -7,4 +6,3 @@ export async function GET() {
     headers: { "content-type": "application/json" },
   });
 }
-
