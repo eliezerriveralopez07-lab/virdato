@@ -1,7 +1,10 @@
-import { redis } from "@/lib/redis";
+// app/api/debug/ping/route.ts
 export const runtime = "edge";
 
 export async function GET() {
-  const pong = await redis.ping();
-  return new Response(JSON.stringify({ pong }), { status: 200 });
+  return new Response(JSON.stringify({ pong: "PONG" }), {
+    status: 200,
+    headers: { "content-type": "application/json" },
+  });
 }
+
