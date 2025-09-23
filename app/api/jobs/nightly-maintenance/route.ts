@@ -5,7 +5,7 @@ import { redis } from "@/lib/redis";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// Only verify on Vercel/prod
+// Prod only (Vercel sets VERCEL="1")
 const isProd = process.env.VERCEL === "1" || process.env.NODE_ENV === "production";
 
 const receiver = new Receiver({
@@ -14,21 +14,18 @@ const receiver = new Receiver({
 });
 
 export async function POST(req: Request) {
-  const bodyText = await req.text();
+  const raw = await req.text();
 
   if (isProd) {
-    const signature = req.headers.get("Upstash-Signature") || "";
-    try {
-      await receiver.verify({ signature, body: bodyText });
-    } catch {
-      return new Response("invalid signature", { status: 401 });
-    }
+    const sig = req.headers.get("Upstash-Signature") || "";
+    try { await receiver.verify({ signature: sig, body: raw }); }
+    catch { return new Response("invalid signature", { status: 401 }); }
   }
 
-  const payload = bodyText ? JSON.parse(bodyText) : {};
+  const payload = raw ? JSON.parse(raw) : {};
 
-  // daily idempotency lock
-  const dayKey = `lock:nightly:${new Date().toISOString().slice(0, 10)}`;
+  // one-run-per-day lock
+  const dayKey = `lock:nightly:${new Date().toISOString().slice(0,10)}`;
   const gotLock = await redis.set(dayKey, "1", { nx: true, ex: 3600 });
   if (!gotLock) return new Response("duplicate-run", { status: 200 });
 
@@ -40,3 +37,4 @@ export async function POST(req: Request) {
     headers: { "content-type": "application/json" },
   });
 }
+
