@@ -6,7 +6,6 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
@@ -15,6 +14,8 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",
+    "@upstash/qstash": "^2.8.3",
+    "@upstash/redis": "^1.35.4",
     "drizzle-orm": "^0.44.5",
     "next": "14.2.5",
     "postgres": "^3.4.7",
@@ -27,6 +28,7 @@
     "@types/react-dom": "^18.2.18",
     "dotenv": "^16.6.1",
     "drizzle-kit": "^0.24.0",
+    "tsx": "^4.20.5",
     "typescript": "^5.5.4"
   },
   "engines": {
