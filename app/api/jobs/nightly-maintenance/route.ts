@@ -1,5 +1,5 @@
 import { verifySignatureAppRouter } from "@upstash/qstash/nextjs";
-import { redis } from "@/lib/redis";
+import { redis } from "lib/redis";
 
 export const runtime = "edge";
 export const dynamic = "force-dynamic";
