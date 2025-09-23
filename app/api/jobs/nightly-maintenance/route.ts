@@ -10,10 +10,7 @@ const receiver = new Receiver({
 });
 
 export async function POST(req: Request) {
-  // QStash signs requests with this header
   const signature = req.headers.get("Upstash-Signature") || "";
-
-  // Read raw body ONCE for signature verification
   const bodyText = await req.text();
 
   try {
@@ -24,7 +21,6 @@ export async function POST(req: Request) {
 
   const payload = bodyText ? JSON.parse(bodyText) : {};
 
-  // --- your job logic ---
   const dayKey = `lock:nightly:${new Date().toISOString().slice(0, 10)}`;
   const gotLock = await redis.set(dayKey, "1", { nx: true, ex: 3600 });
   if (!gotLock) return new Response("duplicate-run", { status: 200 });
