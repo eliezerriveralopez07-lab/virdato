@@ -1,5 +1,5 @@
 import { Receiver } from "@upstash/qstash";
-import { redis } from "lib/redis";
+import { redis } from "@/lib/redis";
 
 export const runtime = "edge";
 export const dynamic = "force-dynamic";
