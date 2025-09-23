@@ -1,5 +1,4 @@
-// app/api/debug/ping/route.ts
-export const runtime = "nodejs"; // simplest for local dev
+export const runtime = "nodejs";
 
 export async function GET() {
   return new Response(JSON.stringify({ pong: "PONG" }), {
