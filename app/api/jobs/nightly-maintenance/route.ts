@@ -8,7 +8,11 @@ async function handler(req: Request) {
   let payload: any = {};
   try { payload = await req.json(); } catch {}
 
-  // Example work
+  // idempotency lock (optional but recommended)
+  const dayKey = `lock:nightly:${new Date().toISOString().slice(0,10)}`;
+  const gotLock = await redis.set(dayKey, "1", { nx: true, ex: 3600 });
+  if (!gotLock) return new Response("duplicate-run", { status: 200 });
+
   const now = new Date().toISOString();
   await redis.set("virdato:lastNightly", now);
 
