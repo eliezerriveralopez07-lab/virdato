@@ -1,38 +1,38 @@
 // app/api/jobs/nightly-maintenance/route.ts
+import { Receiver } from "@upstash/qstash";
 import { redis } from "@/lib/redis";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function GET() {
-  return new Response(JSON.stringify({
-    ok: true,
-    route: "/api/jobs/nightly-maintenance",
-    version: "dev-no-verify-debug",
-    nodeEnv: process.env.NODE_ENV,
-    vercel: process.env.VERCEL ?? null,
-  }), { status: 200, headers: { "content-type": "application/json" } });
-}
+const isProd = process.env.VERCEL === "1" || process.env.NODE_ENV === "production";
+
+const receiver = new Receiver({
+  currentSigningKey: process.env.QSTASH_CURRENT_SIGNING_KEY!,
+  nextSigningKey: process.env.QSTASH_NEXT_SIGNING_KEY!,
+});
 
 export async function POST(req: Request) {
-  let payload: any = {};
-  try { payload = await req.json(); } catch {}
+  const raw = await req.text();
+
+  if (isProd) {
+    const sig = req.headers.get("Upstash-Signature") || "";
+    try { await receiver.verify({ signature: sig, body: raw }); }
+    catch { return new Response("invalid signature", { status: 401 }); }
+  }
+
+  const payload = raw ? JSON.parse(raw) : {};
+
+  // optional idempotency (once per day)
+  const dayKey = `lock:nightly:${new Date().toISOString().slice(0,10)}`;
+  const gotLock = await redis.set(dayKey, "1", { nx: true, ex: 3600 });
+  if (!gotLock) return new Response("duplicate-run", { status: 200 });
 
   const now = new Date().toISOString();
-  try {
-    const res = await redis.set("virdato:lastNightly", now);
-    return new Response(JSON.stringify({ ok: true, at: now, payload, redisSet: res }), {
-      status: 200,
-      headers: { "content-type": "application/json" },
-    });
-  } catch (err: any) {
-    return new Response(JSON.stringify({
-      ok: false,
-      error: err?.message ?? String(err),
-      envSeenByServer: {
-        UPSTASH_REDIS_REST_URL: !!process.env.UPSTASH_REDIS_REST_URL,
-        UPSTASH_REDIS_REST_TOKEN: !!process.env.UPSTASH_REDIS_REST_TOKEN,
-      }
-    }), { status: 500, headers: { "content-type": "application/json" } });
-  }
+  await redis.set("virdato:lastNightly", now);
+
+  return new Response(JSON.stringify({ ok: true, at: now, payload }), {
+    status: 200,
+    headers: { "content-type": "application/json" },
+  });
 }
