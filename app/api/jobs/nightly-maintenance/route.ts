@@ -1,5 +1,4 @@
-// app/api/jobs/nightly-maintenance/route.ts
-import { Receiver } from "@upstash/qstash";
+﻿import { Receiver } from "@upstash/qstash";
 import { redis } from "@/lib/redis";
 
 export const runtime = "nodejs";
@@ -23,7 +22,7 @@ export async function POST(req: Request) {
 
   const payload = raw ? JSON.parse(raw) : {};
 
-  // optional idempotency (once per day)
+  // optional: one run per day (idempotency)
   const dayKey = `lock:nightly:${new Date().toISOString().slice(0,10)}`;
   const gotLock = await redis.set(dayKey, "1", { nx: true, ex: 3600 });
   if (!gotLock) return new Response("duplicate-run", { status: 200 });
