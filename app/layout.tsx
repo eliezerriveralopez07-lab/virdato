@@ -1,9 +1,10 @@
-export const metadata = { title: "virdato" };
-
-export default function RootLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <html lang="en">
-      <body>{children}</body>
-    </html>
-  );
+import * as Sentry from '@sentry/nextjs';
+import type { Metadata } from 'next';
+export function generateMetadata(): Metadata {
+  return {
+    // ... your existing metadata
+    other: {
+      ...Sentry.getTraceData()
+    }
+  };
 }
