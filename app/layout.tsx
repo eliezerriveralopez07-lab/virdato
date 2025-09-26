@@ -4,10 +4,8 @@ import type { Metadata } from "next";
 import * as Sentry from "@sentry/nextjs";
 
 export const metadata: Metadata = {
-  // add your title/description etc if you have them
-  other: {
-    ...Sentry.getTraceData(),
-  },
+  // keep your own title/description if you had them
+  other: { ...Sentry.getTraceData() },
 };
 
 export default function RootLayout({
@@ -21,3 +19,4 @@ export default function RootLayout({
     </html>
   );
 }
+
