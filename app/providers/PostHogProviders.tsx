@@ -1,25 +1,29 @@
 'use client'
 
 import posthog from 'posthog-js'
-import { PostHogProvider } from 'posthog-js/react'
 import { useEffect, PropsWithChildren } from 'react'
 
 export default function PHProvider({ children }: PropsWithChildren) {
   useEffect(() => {
-    // avoid double init on hot reload
-    if (!(posthog as any).__isInitialized) {
-      // sanity log — you should see real values in the console
-      console.log('PH init', process.env.NEXT_PUBLIC_POSTHOG_KEY, process.env.NEXT_PUBLIC_POSTHOG_HOST)
+    if (typeof window === 'undefined') return
+    if ((posthog as any).__isInitialized) return
 
-      posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY!, {
-        api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://us.posthog.com',
-        capture_pageview: false, // we’ll track pageviews on route changes
-      } as any)
-
-      ;(posthog as any).__isInitialized = true
-      ;(window as any).posthog = posthog // ensure global for console checks
+    const key = process.env.NEXT_PUBLIC_POSTHOG_KEY
+    const host = process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://us.posthog.com'
+    if (!key) {
+      console.warn('PostHog: missing NEXT_PUBLIC_POSTHOG_KEY')
+      return
     }
+
+    posthog.init(key, {
+      api_host: host,
+      capture_pageview: false, // we'll send pageviews on route changes
+    } as any)
+
+    ;(posthog as any).__isInitialized = true
+    ;(window as any).posthog = posthog // so you can use it from DevTools
+    console.log('PostHog initialized', { host })
   }, [])
 
-  return <PostHogProvider client={posthog}>{children}</PostHogProvider>
+  return <>{children}</>
 }
