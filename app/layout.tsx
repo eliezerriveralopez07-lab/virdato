@@ -3,9 +3,11 @@ import './globals.css'
 import type { Metadata } from 'next'
 import * as Sentry from '@sentry/nextjs'
 import { Suspense } from 'react'
+import dynamic from 'next/dynamic'
 
-import PHProvider from './providers/PostHogProviders'
-import PostHogPageview from './providers/PostHogPageview'
+// Force client-side execution of these components
+const PHProvider = dynamic(() => import('./providers/PostHogProviders'), { ssr: false })
+const PostHogPageview = dynamic(() => import('./providers/PostHogPageview'), { ssr: false })
 
 export const metadata: Metadata = {
   other: { ...Sentry.getTraceData() },
