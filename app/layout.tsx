@@ -2,6 +2,7 @@
 import './globals.css'
 import type { Metadata } from 'next'
 import * as Sentry from '@sentry/nextjs'
+import { Suspense } from 'react'
 
 import PHProvider from './providers/PostHogProviders'
 import PostHogPageview from './providers/PostHogPageview'
@@ -15,7 +16,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body className="min-h-screen bg-gray-50 text-gray-900 antialiased">
         <PHProvider>
-          <PostHogPageview />
+          <Suspense fallback={null}>
+            <PostHogPageview />
+          </Suspense>
           {children}
         </PHProvider>
       </body>
