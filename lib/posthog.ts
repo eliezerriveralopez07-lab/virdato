@@ -1,27 +1,33 @@
-import posthog from 'posthog-js'
+// lib/posthog.ts
+export async function initPosthog() {
+  // Only run in the browser
+  if (typeof window === 'undefined') return;
 
-declare global { interface Window { posthog?: any } }
+  // Avoid double init across navigations/hot reloads
+  if ((window as any).__phInitialized) return;
 
-// expose for console testing
-if (typeof window !== 'undefined') {
-  window.posthog = posthog
-}
+  // Dynamic import so SSR never loads posthog-js
+  const { default: posthog } = await import('posthog-js');
 
-export function initPosthog() {
-  if (typeof window === 'undefined') return
-  if ((posthog as any).__loaded) return
+  // Expose for DevTools testing
+  (window as any).posthog = posthog;
 
-  const key = process.env.NEXT_PUBLIC_POSTHOG_KEY
-  const host = process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://us.i.posthog.com'
+  const key  = process.env.NEXT_PUBLIC_POSTHOG_KEY;
+  const host = process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://us.i.posthog.com';
 
-  console.log('[PH] init', { keyPresent: !!key, host })
-  if (!key) return
+  if (!key) {
+    console.warn('[PH] Missing NEXT_PUBLIC_POSTHOG_KEY');
+    return;
+  }
 
   posthog.init(key, {
     api_host: host,
     capture_pageview: true,
     capture_pageleave: true,
     autocapture: true,
-  })
+  });
+
+  (window as any).__phInitialized = true;
+  console.log('[PH] initialized', { host });
 }
 
