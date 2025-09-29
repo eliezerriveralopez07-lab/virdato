@@ -1,29 +1,19 @@
 // app/layout.tsx
-import './globals.css'
-import type { Metadata } from 'next'
-import * as Sentry from '@sentry/nextjs'
-import { Suspense } from 'react'
-import dynamic from 'next/dynamic'
+'use client'
 
-const PHProvider = dynamic(() => import('./providers/PostHogProviders'), { ssr: false })
-const PostHogPageview = dynamic(() => import('./providers/PostHogPageview'), { ssr: false })
-
-export const metadata: Metadata = {
-  other: { ...Sentry.getTraceData() },
-}
+import { useEffect } from 'react'
+import { initPosthog } from '../lib/posthog' // note the relative path
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  useEffect(() => {
+    initPosthog()
+  }, [])
+
   return (
     <html lang="en">
-      <body className="min-h-screen bg-gray-50 text-gray-900 antialiased">
-        <PHProvider>
-          <Suspense fallback={null}>
-            <PostHogPageview />
-          </Suspense>
-          {children}
-        </PHProvider>
-      </body>
+      <body>{children}</body>
     </html>
   )
 }
+
 
