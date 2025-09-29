@@ -1,11 +1,14 @@
 // app/providers.tsx
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, ReactNode } from 'react'
 import { initPosthog } from '../lib/posthog'
 
-export default function Providers({ children }: { children: React.ReactNode }) {
+type Props = { children: ReactNode }
+
+export default function Providers({ children }: Props) {
   useEffect(() => {
+    console.log('[PH] Providers mounted')
     initPosthog()
   }, [])
 
