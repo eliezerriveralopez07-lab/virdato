@@ -1,17 +1,18 @@
-// lib/posthog.ts
 import posthog from 'posthog-js'
 
 declare global {
   interface Window { posthog?: any }
 }
 
+// expose immediately so DevTools can see it
+if (typeof window !== 'undefined') {
+  window.posthog = posthog
+}
+
 export function initPosthog() {
   if (typeof window === 'undefined') return
 
-  // expose for console testing
-  window.posthog = posthog
-
-  // avoid double init during fast refresh/navigation
+  // avoid double init
   if ((posthog as any).__loaded) return
 
   const key = process.env.NEXT_PUBLIC_POSTHOG_KEY
