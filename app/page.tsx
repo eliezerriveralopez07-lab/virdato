@@ -1,3 +1,4 @@
+// app/page.tsx
 'use client'
 
 import { useEffect } from 'react'
@@ -10,7 +11,7 @@ export default function Home() {
 
   return (
     <main className="min-h-screen grid place-items-center">
-      {/* Force PH boot to mount visibly on this page */}
+      {/* Force PH boot to render visibly here */}
       <PhBoot />
       <div className="p-6 rounded-2xl shadow">
         <h1 className="text-3xl font-bold text-blue-600">Tailwind is working ✅</h1>
