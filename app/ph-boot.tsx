@@ -1,4 +1,3 @@
-// app/ph-boot.tsx
 'use client'
 
 import { useEffect } from 'react'
@@ -8,10 +7,8 @@ export default function PhBoot() {
     (async () => {
       console.log('[PH] Boot component mounted')
 
-      // Dynamic import so SSR never touches window/posthog
+      // dynamic import: SSR-safe
       const { default: posthog } = await import('posthog-js')
-
-      // Expose for DevTools testing
       ;(window as any).posthog = posthog
 
       const key  = process.env.NEXT_PUBLIC_POSTHOG_KEY
@@ -34,7 +31,7 @@ export default function PhBoot() {
     })()
   }, [])
 
-  // Visual badge so we KNOW this ran
+  // badge so we KNOW this executed
   return (
     <div
       style={{
