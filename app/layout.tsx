@@ -1,15 +1,16 @@
-// app/layout.tsx
-import Providers from './providers'
+import PhBoot from './ph-boot'
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <body>
-        <Providers>{children}</Providers>
+        <PhBoot />
+        {children}
       </body>
     </html>
   )
 }
+
 
 
 
