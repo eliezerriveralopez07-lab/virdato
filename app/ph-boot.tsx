@@ -7,7 +7,7 @@ export default function PhBoot() {
     (async () => {
       console.log('[PH] Boot component mounted')
 
-      // dynamic import: SSR-safe
+      // SSR-safe: only load in the browser
       const { default: posthog } = await import('posthog-js')
       ;(window as any).posthog = posthog
 
@@ -22,16 +22,16 @@ export default function PhBoot() {
 
       posthog.init(key, {
         api_host: host,
+        autocapture: true,
         capture_pageview: true,
         capture_pageleave: true,
-        autocapture: true,
       })
 
       console.log('[PH] initialized')
     })()
   }, [])
 
-  // badge so we KNOW this executed
+  // visible badge so we KNOW this ran
   return (
     <div
       style={{
