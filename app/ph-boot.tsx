@@ -5,9 +5,9 @@ import { useEffect } from 'react'
 
 export default function PhBoot() {
   useEffect(() => {
-    // PROBES: these should always show up if the component mounts
-    (window as any).__ph_probe = 'mounted'
-    console.log('[PH] Boot mounted: set window.__ph_probe = "mounted"')
+    // prove mount
+    ;(window as any).__ph_probe = 'mounted'
+    console.log('[PH] Boot mounted: probe set')
 
     ;(async () => {
       try {
@@ -20,7 +20,8 @@ export default function PhBoot() {
         console.log('[PH] keyPresent:', !!key, 'host:', host)
 
         if (!key) {
-          console.warn('[PH] Missing NEXT_PUBLIC_POSTHOG_KEY'); return
+          console.warn('[PH] Missing NEXT_PUBLIC_POSTHOG_KEY')
+          return
         }
 
         posthog.init(key, {
@@ -37,7 +38,7 @@ export default function PhBoot() {
     })()
   }, [])
 
-  // visible badge so we KNOW this ran
+  // visible badge so we KNOW it ran
   return (
     <div
       style={{
@@ -50,3 +51,4 @@ export default function PhBoot() {
     </div>
   )
 }
+
