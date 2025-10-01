@@ -7,20 +7,17 @@ export default function PhBoot() {
     (async () => {
       console.log('[PH] boot starting')
 
-      // SSR-safe dynamic import
+      // SSR-safe: only load on the client
       const { default: posthog } = await import('posthog-js')
 
-      // expose for console testing
+      // expose so DevTools can use it
       ;(window as any).posthog = posthog
 
       const key  = process.env.NEXT_PUBLIC_POSTHOG_KEY
       const host = process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://us.i.posthog.com'
       console.log('[PH] init params', { keyPresent: !!key, host })
 
-      if (!key) {
-        console.warn('[PH] Missing NEXT_PUBLIC_POSTHOG_KEY'); 
-        return
-      }
+      if (!key) { console.warn('[PH] Missing NEXT_PUBLIC_POSTHOG_KEY'); return }
 
       posthog.init(key, {
         api_host: host,
@@ -33,7 +30,7 @@ export default function PhBoot() {
     })()
   }, [])
 
-  // temporary badge so we know it ran
+  // temporary badge so we KNOW this ran
   return (
     <div style={{
       position:'fixed', bottom:8, right:8, padding:'4px 8px',
