@@ -1,16 +1,16 @@
+// app/ph-boot.tsx
 'use client'
 
 import { useEffect } from 'react'
 
 export default function PhBoot() {
   useEffect(() => {
-    // prove mount
+    // prove mount even if import fails
     ;(window as any).__ph_probe = 'mounted'
     console.log('[PH] Boot mounted: probe set')
 
     ;(async () => {
       try {
-        // SSR-safe dynamic import
         const { default: posthog } = await import('posthog-js')
         ;(window as any).posthog = posthog
         console.log('[PH] posthog-js imported')
@@ -19,10 +19,7 @@ export default function PhBoot() {
         const host = process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://us.i.posthog.com'
         console.log('[PH] keyPresent:', !!key, 'host:', host)
 
-        if (!key) {
-          console.warn('[PH] Missing NEXT_PUBLIC_POSTHOG_KEY')
-          return
-        }
+        if (!key) { console.warn('[PH] Missing NEXT_PUBLIC_POSTHOG_KEY'); return }
 
         posthog.init(key, {
           api_host: host,
