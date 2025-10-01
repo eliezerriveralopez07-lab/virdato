@@ -1,4 +1,3 @@
-// app/ph-boot.tsx
 'use client'
 
 import { useEffect } from 'react'
@@ -11,6 +10,7 @@ export default function PhBoot() {
 
     ;(async () => {
       try {
+        // SSR-safe dynamic import
         const { default: posthog } = await import('posthog-js')
         ;(window as any).posthog = posthog
         console.log('[PH] posthog-js imported')
@@ -51,4 +51,3 @@ export default function PhBoot() {
     </div>
   )
 }
-
