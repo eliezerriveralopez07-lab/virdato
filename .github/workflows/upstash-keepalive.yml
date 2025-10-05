@@ -1,0 +1,21 @@
+name: upstash-keepalive
+on:
+  schedule:
+    - cron: '0 7 * * 1'   # Every Monday 07:00 UTC (~08:00/09:00 Berlin)
+  workflow_dispatch: {}    # Allow manual run
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Keep Redis alive (write a timestamp)
+        env:
+          URL: ${{ secrets.UPSTASH_REST_URL }}
+          TOKEN: ${{ secrets.UPSTASH_REST_TOKEN }}
+        run: |
+          set -euxo pipefail
+          ts=$(date -u +%s)
+          curl -fsS -H "Authorization: Bearer $TOKEN" \
+            "$URL/set/__keepalive__/$ts" -o /dev/null
+          # If you only have a read token, use:
+          # curl -fsS -H "Authorization: Bearer $TOKEN" "$URL/ping" -o /dev/null
