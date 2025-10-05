@@ -7,7 +7,7 @@ export default function Providers({ children }: { children: ReactNode }) {
       console.log('[PH] provider mounted')
 
       const { default: posthog } = await import('posthog-js') // SSR-safe
-      ;(window as any).posthog = posthog                      // expose for console
+      ;(window as any).posthog = posthog                      // expose for Console
 
       const key  = process.env.NEXT_PUBLIC_POSTHOG_KEY
       const host = process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://us.i.posthog.com'
@@ -25,7 +25,7 @@ export default function Providers({ children }: { children: ReactNode }) {
     })()
   }, [])
 
-  // visible badge so we KNOW it ran (remove later)
+  // TEMP badge so we can see it's running; remove later
   return (
     <>
       {children}
