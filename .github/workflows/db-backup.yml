@@ -1,0 +1,35 @@
+name: Nightly DB backup
+
+on:
+  schedule:
+    - cron: "0 6 * * *"   # 06:00 UTC daily
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dump:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install pg client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+      - name: Dump Postgres (compressed)
+        env:
+          DATABASE_URL_BACKUP: ${{ secrets.DATABASE_URL_BACKUP }}   # backup_ro URL
+        run: |
+          set -euo pipefail
+          TS=$(date -u +%Y%m%d-%H%M%S)
+          FILE="backup-${TS}.dump"
+          pg_dump "$DATABASE_URL_BACKUP" -Z 9 -Fc -f "$FILE"
+          echo "FILE=$FILE" >> "$GITHUB_ENV"
+
+      - name: Upload artifact (90 days)
+        uses: actions/upload-artifact@v4
+        with:
+          name: neon-backup
+          path: ${{ env.FILE }}
+          retention-days: 90
