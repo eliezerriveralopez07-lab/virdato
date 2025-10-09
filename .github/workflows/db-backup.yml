@@ -23,35 +23,40 @@ jobs:
           DATABASE_URL_BACKUP: ${{ secrets.DATABASE_URL_BACKUP }}
         run: |
           if ([string]::IsNullOrEmpty($env:DATABASE_URL_BACKUP)) {
-            Write-Error "DATABASE_URL_BACKUP secret missing (create it in Settings → Secrets and variables → Actions)."
-          } else {
-            Write-Host "Secret present (len):" $env:DATABASE_URL_BACKUP.Length
+            throw "DATABASE_URL_BACKUP is missing (create a repo Secret)."
           }
 
       - name: Install pg client (Windows)
         shell: pwsh
         run: |
           choco install postgresql16 --no-progress -y
-          echo "C:\Program Files\PostgreSQL\16\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-          pg_dump --version
-          psql --version
+          # Add the Postgres bin dir for this job
+          $pgRoot = "C:\Program Files\PostgreSQL"
+          $pgBin = (Get-ChildItem $pgRoot -Directory | Sort-Object Name -Descending | Select-Object -First 1 | ForEach-Object { Join-Path $_.FullName "bin" })
+          if (-not (Test-Path $pgBin)) { throw "PostgreSQL bin not found under $pgRoot" }
+          echo $pgBin | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          # Verify – use absolute path so this step never fails on PATH timing
+          & (Join-Path $pgBin "pg_dump.exe") --version
+          & (Join-Path $pgBin "psql.exe")    --version
+          # Remember for later steps
+          "PGBIN=$pgBin" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Test DB connection
         shell: pwsh
         env:
           DATABASE_URL_BACKUP: ${{ secrets.DATABASE_URL_BACKUP }}
         run: |
-          psql "$env:DATABASE_URL_BACKUP" -c "select current_user, current_database();"
+          & "$env:PGBIN\psql.exe" "$env:DATABASE_URL_BACKUP" -c "select current_user, current_database();"
 
       - name: Dump Postgres (compressed)
         shell: pwsh
         env:
           DATABASE_URL_BACKUP: ${{ secrets.DATABASE_URL_BACKUP }}
         run: |
-          $TS = Get-Date -Date (Get-Date).ToUniversalTime() -Format "yyyyMMdd-HHmmss"
+          $TS   = Get-Date -Date (Get-Date).ToUniversalTime() -Format "yyyyMMdd-HHmmss"
           $FILE = "backup-$TS.dump"
-          pg_dump "$env:DATABASE_URL_BACKUP" -Z 9 -Fc -f $FILE
-          echo "FILE=$FILE" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          & "$env:PGBIN\pg_dump.exe" "$env:DATABASE_URL_BACKUP" -Z 9 -Fc -f $FILE
+          "FILE=$FILE" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Debug listing
         shell: pwsh
