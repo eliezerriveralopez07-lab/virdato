@@ -2,7 +2,7 @@ name: Nightly DB backup
 
 on:
   schedule:
-    - cron: "0 6 * * *"   # 06:00 UTC daily
+    - cron: "0 6 * * *"
   workflow_dispatch:
 
 permissions:
@@ -14,17 +14,19 @@ concurrency:
 
 jobs:
   dump:
-    runs-on: ubuntu-22.04        # force a specific runner
+    runs-on: macos-latest          # TEMP: avoid Ubuntu queue
     timeout-minutes: 20
     steps:
-      - name: Install pg client
+      - name: Install pg client (macOS)
         run: |
-          sudo apt-get update
-          sudo apt-get install -y postgresql-client
+          brew update
+          brew install libpq
+          brew link --force libpq
+          pg_dump --version
 
       - name: Dump Postgres (compressed)
         env:
-          DATABASE_URL_BACKUP: ${{ secrets.DATABASE_URL_BACKUP }}  # must be backup_ro URL
+          DATABASE_URL_BACKUP: ${{ secrets.DATABASE_URL_BACKUP }}  # backup_ro URL
         run: |
           set -euo pipefail
           TS=$(date -u +%Y%m%d-%H%M%S)
@@ -45,3 +47,5 @@ jobs:
           name: neon-backup
           path: ${{ env.FILE }}
           retention-days: 90
+
+     
