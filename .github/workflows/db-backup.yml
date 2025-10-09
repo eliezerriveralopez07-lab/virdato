@@ -2,7 +2,7 @@ name: Nightly DB backup
 
 on:
   schedule:
-    - cron: "0 6 * * *"
+    - cron: "0 6 * * *"   # 06:00 UTC daily
   workflow_dispatch:
 
 permissions:
@@ -23,22 +23,20 @@ jobs:
           DATABASE_URL_BACKUP: ${{ secrets.DATABASE_URL_BACKUP }}
         run: |
           if ([string]::IsNullOrEmpty($env:DATABASE_URL_BACKUP)) {
-            throw "DATABASE_URL_BACKUP is missing (create a repo Secret)."
+            throw "DATABASE_URL_BACKUP is missing (create a repo Secret in Settings → Secrets and variables → Actions)."
           }
 
       - name: Install pg client (Windows)
         shell: pwsh
         run: |
           choco install postgresql16 --no-progress -y
-          # Add the Postgres bin dir for this job
           $pgRoot = "C:\Program Files\PostgreSQL"
-          $pgBin = (Get-ChildItem $pgRoot -Directory | Sort-Object Name -Descending | Select-Object -First 1 | ForEach-Object { Join-Path $_.FullName "bin" })
+          $pgBin  = (Get-ChildItem $pgRoot -Directory | Sort-Object Name -Descending | Select-Object -First 1 | ForEach-Object { Join-Path $_.FullName "bin" })
           if (-not (Test-Path $pgBin)) { throw "PostgreSQL bin not found under $pgRoot" }
+          # Make pg tools available to later steps AND use absolute path now
           echo $pgBin | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-          # Verify – use absolute path so this step never fails on PATH timing
           & (Join-Path $pgBin "pg_dump.exe") --version
           & (Join-Path $pgBin "psql.exe")    --version
-          # Remember for later steps
           "PGBIN=$pgBin" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Test DB connection
@@ -58,15 +56,10 @@ jobs:
           & "$env:PGBIN\pg_dump.exe" "$env:DATABASE_URL_BACKUP" -Z 9 -Fc -f $FILE
           "FILE=$FILE" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
-      - name: Debug listing
-        shell: pwsh
-        run: |
-          dir
-          Write-Host "FILE is: $env:FILE"
-
       - name: Upload artifact (90 days)
         uses: actions/upload-artifact@v4
         with:
           name: neon-backup
           path: ${{ env.FILE }}
           retention-days: 90
+
