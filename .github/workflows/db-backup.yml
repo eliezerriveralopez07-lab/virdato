@@ -8,9 +8,14 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: db-backup
+  cancel-in-progress: true
+
 jobs:
   dump:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04        # force a specific runner
+    timeout-minutes: 20
     steps:
       - name: Install pg client
         run: |
@@ -19,13 +24,20 @@ jobs:
 
       - name: Dump Postgres (compressed)
         env:
-          DATABASE_URL_BACKUP: ${{ secrets.DATABASE_URL_BACKUP }}   # backup_ro URL
+          DATABASE_URL_BACKUP: ${{ secrets.DATABASE_URL_BACKUP }}  # must be backup_ro URL
         run: |
           set -euo pipefail
           TS=$(date -u +%Y%m%d-%H%M%S)
           FILE="backup-${TS}.dump"
           pg_dump "$DATABASE_URL_BACKUP" -Z 9 -Fc -f "$FILE"
           echo "FILE=$FILE" >> "$GITHUB_ENV"
+
+      - name: Debug listing
+        run: |
+          set -e
+          ls -la
+          echo "FILE is: $FILE"
+          du -h "$FILE" || true
 
       - name: Upload artifact (90 days)
         uses: actions/upload-artifact@v4
