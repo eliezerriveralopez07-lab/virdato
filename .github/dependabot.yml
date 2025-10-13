@@ -1,0 +1,31 @@
+mkdir -p .github
+cat > .github/dependabot.yml <<'YAML'
+version: 2
+updates:
+  # Keep npm deps fresh (your Next.js app)
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "America/New_York"   # change if you want
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "deps"
+      include: "scope"
+    groups:
+      minor-and-patch:
+        update-types: ["minor", "patch"]
+    labels: ["deps", "automated"]
+
+  # Keep GitHub Actions up to date
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+YAML
+
+git add .github/dependabot.yml
+git commit -m "chore: enable Dependabot weekly for npm and actions"
+git push
