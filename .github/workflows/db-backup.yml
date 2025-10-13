@@ -14,47 +14,36 @@ concurrency:
 
 jobs:
   dump:
-    runs-on: windows-latest
+    runs-on: ubuntu-22.04   # << cheaper Linux runner
     timeout-minutes: 20
+
     steps:
       - name: Validate secret exists
-        shell: pwsh
         env:
           DATABASE_URL_BACKUP: ${{ secrets.DATABASE_URL_BACKUP }}
         run: |
-          if ([string]::IsNullOrEmpty($env:DATABASE_URL_BACKUP)) {
-            throw "DATABASE_URL_BACKUP is missing (create a repo Secret in Settings → Secrets and variables → Actions)."
-          }
+          test -n "$DATABASE_URL_BACKUP" || (echo "ERROR: missing DATABASE_URL_BACKUP secret" >&2; exit 1)
 
-      - name: Install pg client (Windows)
-        shell: pwsh
+      - name: Install pg client
         run: |
-          choco install postgresql16 --no-progress -y
-          $pgRoot = "C:\Program Files\PostgreSQL"
-          $pgBin  = (Get-ChildItem $pgRoot -Directory | Sort-Object Name -Descending | Select-Object -First 1 | ForEach-Object { Join-Path $_.FullName "bin" })
-          if (-not (Test-Path $pgBin)) { throw "PostgreSQL bin not found under $pgRoot" }
-          # Make pg tools available to later steps AND use absolute path now
-          echo $pgBin | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-          & (Join-Path $pgBin "pg_dump.exe") --version
-          & (Join-Path $pgBin "psql.exe")    --version
-          "PGBIN=$pgBin" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
 
       - name: Test DB connection
-        shell: pwsh
         env:
           DATABASE_URL_BACKUP: ${{ secrets.DATABASE_URL_BACKUP }}
         run: |
-          & "$env:PGBIN\psql.exe" "$env:DATABASE_URL_BACKUP" -c "select current_user, current_database();"
+          psql "$DATABASE_URL_BACKUP" -v ON_ERROR_STOP=1 -c "select current_user, current_database();"
 
       - name: Dump Postgres (compressed)
-        shell: pwsh
         env:
           DATABASE_URL_BACKUP: ${{ secrets.DATABASE_URL_BACKUP }}
         run: |
-          $TS   = Get-Date -Date (Get-Date).ToUniversalTime() -Format "yyyyMMdd-HHmmss"
-          $FILE = "backup-$TS.dump"
-          & "$env:PGBIN\pg_dump.exe" "$env:DATABASE_URL_BACKUP" -Z 9 -Fc -f $FILE
-          "FILE=$FILE" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          set -euo pipefail
+          TS=$(date -u +%Y%m%d-%H%M%S)
+          FILE="backup-${TS}.dump"
+          pg_dump "$DATABASE_URL_BACKUP" -Z 9 -Fc -f "$FILE"
+          echo "FILE=$FILE" >> "$GITHUB_ENV"
 
       - name: Upload artifact (90 days)
         uses: actions/upload-artifact@v4
@@ -62,4 +51,3 @@ jobs:
           name: neon-backup
           path: ${{ env.FILE }}
           retention-days: 90
-
