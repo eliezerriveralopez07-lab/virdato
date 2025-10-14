@@ -2,7 +2,7 @@ name: Nightly DB backup
 
 on:
   schedule:
-    - cron: "0 7 * * *"        # 07:00 UTC daily
+    - cron: "0 7 * * *"    # 07:00 UTC daily
   workflow_dispatch:
 
 permissions:
@@ -18,40 +18,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # ---- CONNECTION TEST (with DNS + SSL) ----
-      - name: Quick connection test (psql)
+      - name: Quick connection test (psql over URI)
         env:
-          PGHOST: ${{ secrets.PGHOST }}
-          PGPORT: ${{ secrets.PGPORT }}
-          PGUSER: ${{ secrets.PGUSER }}
-          PGPASSWORD: ${{ secrets.PGPASSWORD }}
-          PGDATABASE: ${{ secrets.PGDATABASE }}
-          PGSSLMODE: require
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
-          # Fail fast if host is wrong
-          getent hosts "$PGHOST"
+          docker run --rm -e DATABASE_URL postgres:${{ env.PG_MAJOR }}-alpine \
+            psql "$DATABASE_URL?sslmode=require" -c "select 1"
 
-          docker run --rm \
-            -e PGHOST -e PGPORT -e PGUSER -e PGPASSWORD -e PGDATABASE -e PGSSLMODE \
-            postgres:${{ env.PG_MAJOR }}-alpine \
-            psql "host=$PGHOST port=$PGPORT user=$PGUSER dbname=$PGDATABASE sslmode=$PGSSLMODE" -c "select 1"
-
-      # ---- DUMP STEP (uses pg_dump 17 with SSL) ----
       - name: Dump Postgres (compressed, custom format)
         env:
-          PGHOST: ${{ secrets.PGHOST }}
-          PGPORT: ${{ secrets.PGPORT }}
-          PGUSER: ${{ secrets.PGUSER }}
-          PGPASSWORD: ${{ secrets.PGPASSWORD }}
-          PGDATABASE: ${{ secrets.PGDATABASE }}
-          PGSSLMODE: require
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
           TS=$(date -u +%Y-%m-%dT%H-%M-%SZ)
-          docker run --rm \
-            -e PGHOST -e PGPORT -e PGUSER -e PGPASSWORD -e PGDATABASE -e PGSSLMODE \
-            -v "$PWD:/dump" \
+          docker run --rm -e DATABASE_URL -v "$PWD:/dump" \
             postgres:${{ env.PG_MAJOR }}-alpine \
-            sh -lc 'pg_dump "host=$PGHOST port=$PGPORT user=$PGUSER dbname=$PGDATABASE sslmode=$PGSSLMODE" -F c -Z 9 -f "/dump/db_'"$TS"'".dump'
+            sh -lc 'pg_dump "$DATABASE_URL?sslmode=require" -F c -Z 9 -f "/dump/db_'"$TS"'".dump'
 
       - name: Upload artifact (90 days)
         uses: actions/upload-artifact@v4
@@ -59,4 +40,3 @@ jobs:
           name: db-backup
           path: db_*.dump
           retention-days: 90
-
