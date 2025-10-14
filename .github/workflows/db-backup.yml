@@ -2,52 +2,50 @@ name: Nightly DB backup
 
 on:
   schedule:
-    - cron: "0 6 * * *"   # 06:00 UTC daily
-  workflow_dispatch:
+    - cron: "0 7 * * *"        # 07:00 UTC daily
+  workflow_dispatch:            # allow manual runs
 
 permissions:
-  contents: read
+  contents: write               # needed to upload artifacts
 
-concurrency:
-  group: db-backup
-  cancel-in-progress: true
+concurrency: nightly-db-backup
+env:
+  PG_MAJOR: 17                  # bump here when your server major changes
 
 jobs:
   dump:
-    runs-on: ubuntu-22.04   # << cheaper Linux runner
-    timeout-minutes: 20
-
+    runs-on: ubuntu-latest
     steps:
-      - name: Validate secret exists
-        env:
-          DATABASE_URL_BACKUP: ${{ secrets.DATABASE_URL_BACKUP }}
-        run: |
-          test -n "$DATABASE_URL_BACKUP" || (echo "ERROR: missing DATABASE_URL_BACKUP secret" >&2; exit 1)
+      - uses: actions/checkout@v4
 
-      - name: Install pg client
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y postgresql-client
-
-      - name: Test DB connection
+      - name: Quick connection test (psql)
         env:
-          DATABASE_URL_BACKUP: ${{ secrets.DATABASE_URL_BACKUP }}
+          PGPASSWORD: ${{ secrets.PGPASSWORD }}
         run: |
-          psql "$DATABASE_URL_BACKUP" -v ON_ERROR_STOP=1 -c "select current_user, current_database();"
+          docker run --rm -e PGPASSWORD="$PGPASSWORD" \
+            postgres:${{ env.PG_MAJOR }}-alpine \
+            psql -h "${{ secrets.PGHOST }}" -p "${{ secrets.PGPORT }}" \
+                 -U "${{ secrets.PGUSER }}" -d "${{ secrets.PGDATABASE }}" \
+                 -c "select 1"
 
-      - name: Dump Postgres (compressed)
+      - name: Dump Postgres (compressed, custom format)
         env:
-          DATABASE_URL_BACKUP: ${{ secrets.DATABASE_URL_BACKUP }}
+          PGPASSWORD: ${{ secrets.PGPASSWORD }}
         run: |
-          set -euo pipefail
-          TS=$(date -u +%Y%m%d-%H%M%S)
-          FILE="backup-${TS}.dump"
-          pg_dump "$DATABASE_URL_BACKUP" -Z 9 -Fc -f "$FILE"
-          echo "FILE=$FILE" >> "$GITHUB_ENV"
+          TS=$(date -u +%Y-%m-%dT%H-%M-%SZ)
+          docker run --rm \
+            -e PGPASSWORD="$PGPASSWORD" \
+            -v "$PWD:/dump" \
+            postgres:${{ env.PG_MAJOR }}-alpine \
+            pg_dump -h "${{ secrets.PGHOST }}" -p "${{ secrets.PGPORT }}" \
+                    -U "${{ secrets.PGUSER }}" -d "${{ secrets.PGDATABASE }}" \
+                    -F c -Z 9 -f "/dump/db_${TS}.dump"
 
       - name: Upload artifact (90 days)
         uses: actions/upload-artifact@v4
         with:
-          name: neon-backup
-          path: ${{ env.FILE }}
+          name: db-backup
+          path: db_*.dump
           retention-days: 90
+
+       
