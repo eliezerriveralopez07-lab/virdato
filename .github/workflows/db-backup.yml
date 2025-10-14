@@ -6,17 +6,18 @@ on:
   workflow_dispatch:              # allow manual runs
 
 permissions:
-  contents: write
+  contents: write                 # needed to upload artifacts
 
 concurrency: nightly-db-backup
-
 jobs:
   dump:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+
     steps:
       - uses: actions/checkout@v4
 
-      # Install Postgres 17 client tools (psql/pg_dump)
+      # Install Postgres 17 client tools on the runner (no Docker networking issues)
       - name: Install PostgreSQL 17 client
         run: |
           echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
@@ -24,7 +25,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y postgresql-client-17
 
-      # ---- Sanity: print parsed DATABASE_URL parts (so you can verify host/port) ----
+      # Print what the runner sees from your DATABASE_URL (host/port/db only)
       - name: Show parsed DB URL
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
@@ -60,3 +61,4 @@ PY
           name: db-backup
           path: db_*.dump
           retention-days: 90
+
