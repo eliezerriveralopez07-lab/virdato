@@ -1,0 +1,75 @@
+name: Nightly DB backup (apt)
+
+on:
+  schedule:
+    - cron: "0 7 * * *"          # 07:00 UTC daily
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency: nightly-db-backup
+
+jobs:
+  dump:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Install Postgres 17 client tools (psql/pg_dump) on the runner
+      - name: Install PostgreSQL 17 client
+        run: |
+          echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
+          wget -qO- https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo tee /etc/apt/trusted.gpg.d/postgresql.asc > /dev/null
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client-17
+
+      # Show what the runner sees in your DATABASE_URL
+      - name: Show parsed DB URL
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          python - <<'PY'
+import os, urllib.parse as u
+d = u.urlsplit(os.environ['DATABASE_URL'])
+print("SCHEME:", d.scheme)
+print("HOST:", d.hostname)
+print("PORT:", d.port)
+print("DB:", d.path.lstrip('/'))
+PY
+
+      # DNS sanity check (host must resolve)
+      - name: DNS check
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          python - <<'PY'
+import os, urllib.parse as u, subprocess, sys
+h = u.urlsplit(os.environ['DATABASE_URL']).hostname
+print("Resolving:", h)
+sys.exit(subprocess.call(["getent","hosts",h]))
+PY
+
+      # Quick connection test (TLS required)
+      - name: Quick connection test
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          psql "$DATABASE_URL?sslmode=require" -c "select version();"
+
+      # Create compressed custom-format dump
+      - name: Dump Postgres (compressed, custom format)
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          TS=$(date -u +%Y-%m-%dT%H-%M-%SZ)
+          pg_dump "$DATABASE_URL?sslmode=require" -F c -Z 9 -f "db_${TS}.dump"
+
+      - name: Upload artifact (90 days)
+        uses: actions/upload-artifact@v4
+        with:
+          name: db-backup
+          path: db_*.dump
+          retention-days: 90
