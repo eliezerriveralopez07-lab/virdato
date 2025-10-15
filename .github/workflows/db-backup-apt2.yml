@@ -22,41 +22,48 @@ jobs:
           echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
           wget -qO- https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo tee /etc/apt/trusted.gpg.d/postgresql.asc > /dev/null
           sudo apt-get update
-          sudo apt-get install -y postgresql-client-17
+          sudo apt-get install -y postgresql-client-17 dnsutils
 
       - name: Show parsed DB URL
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
-          python -c "import os,urllib.parse as u;d=u.urlsplit(os.environ['DATABASE_URL']);print('SCHEME:',d.scheme);print('HOST:',d.hostname);print('PORT:',d.port);print('DB:',d.path.lstrip('/'))"
+          python -c "import os,urllib.parse as u;d=u.urlsplit(os.environ['DATABASE_URL']);print('SCHEME:',d.scheme);print('HOST:',d.hostname);print('PORT:',d.port or 5432);print('DB:',d.path.lstrip('/'))"
 
       - name: DNS check
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
           HOST=$(python -c "import os,urllib.parse as u;print(u.urlsplit(os.environ['DATABASE_URL']).hostname)")
-          echo "Resolving: $HOST"
+          echo "Resolving (A/AAAA): $HOST"
           getent hosts "$HOST" || true
 
-      # ------- NEW: Resolve IPv4 and export it to $GITHUB_ENV -------
+      # --- Robust IPv4 resolver (getent + dig fallback). Exports $IPV4 for next steps. ---
       - name: Resolve IPv4 for DB host
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
+          set -e
           HOST=$(python -c "import os,urllib.parse as u;print(u.urlsplit(os.environ['DATABASE_URL']).hostname)")
           IPV4=$(getent ahostsv4 "$HOST" | awk 'NR==1{print $1}')
-          echo "HOST=$HOST"; echo "IPV4=$IPV4"
-          echo "HOST=$HOST" >> $GITHUB_ENV
-          echo "IPV4=$IPV4" >> $GITHUB_ENV
+          if [ -z "$IPV4" ]; then
+            IPV4=$(dig +short A "$HOST" | head -n1)
+          fi
+          echo "HOST=$HOST"
+          echo "IPV4=$IPV4"
+          if [ -z "$IPV4" ]; then
+            echo "No IPv4 address found for $HOST"; exit 1
+          fi
+          echo "HOST=$HOST" >> "$GITHUB_ENV"
+          echo "IPV4=$IPV4" >> "$GITHUB_ENV"
 
-      # ------- UPDATED: use hostaddr=$IPV4 for psql test -------
+      # --- Force IPv4 by using hostaddr= (libpq will connect to numeric IPv4) ---
       - name: Quick connection test (IPv4)
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
           psql "$DATABASE_URL?sslmode=require&hostaddr=$IPV4" -c "select version();"
 
-      # ------- UPDATED: use hostaddr=$IPV4 for dump -------
       - name: Dump Postgres (compressed, custom format) [IPv4]
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
@@ -70,5 +77,3 @@ jobs:
           name: db-backup
           path: db_*.dump
           retention-days: 90
-
-       
