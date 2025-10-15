@@ -36,20 +36,33 @@ jobs:
         run: |
           HOST=$(python -c "import os,urllib.parse as u;print(u.urlsplit(os.environ['DATABASE_URL']).hostname)")
           echo "Resolving: $HOST"
-          getent hosts "$HOST"
+          getent hosts "$HOST" || true
 
-      - name: Quick connection test
+      # ------- NEW: Resolve IPv4 and export it to $GITHUB_ENV -------
+      - name: Resolve IPv4 for DB host
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
-          psql "$DATABASE_URL?sslmode=require" -c "select version();"
+          HOST=$(python -c "import os,urllib.parse as u;print(u.urlsplit(os.environ['DATABASE_URL']).hostname)")
+          IPV4=$(getent ahostsv4 "$HOST" | awk 'NR==1{print $1}')
+          echo "HOST=$HOST"; echo "IPV4=$IPV4"
+          echo "HOST=$HOST" >> $GITHUB_ENV
+          echo "IPV4=$IPV4" >> $GITHUB_ENV
 
-      - name: Dump Postgres (compressed, custom format)
+      # ------- UPDATED: use hostaddr=$IPV4 for psql test -------
+      - name: Quick connection test (IPv4)
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          psql "$DATABASE_URL?sslmode=require&hostaddr=$IPV4" -c "select version();"
+
+      # ------- UPDATED: use hostaddr=$IPV4 for dump -------
+      - name: Dump Postgres (compressed, custom format) [IPv4]
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
           TS=$(date -u +%Y-%m-%dT%H-%M-%SZ)
-          pg_dump "$DATABASE_URL?sslmode=require" -F c -Z 9 -f "db_${TS}.dump"
+          pg_dump "$DATABASE_URL?sslmode=require&hostaddr=$IPV4" -F c -Z 9 -f "db_${TS}.dump"
 
       - name: Upload artifact (90 days)
         uses: actions/upload-artifact@v4
@@ -57,3 +70,5 @@ jobs:
           name: db-backup
           path: db_*.dump
           retention-days: 90
+
+       
