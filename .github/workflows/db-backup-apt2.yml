@@ -3,7 +3,7 @@ name: Nightly DB backup (apt2)
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 7 * * *"
+    - cron: "0 7 * * *"   # nightly at 07:00 UTC
 
 permissions:
   contents: write
@@ -28,25 +28,15 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
-          python - <<'PY'
-import os, urllib.parse as u
-d = u.urlsplit(os.environ['DATABASE_URL'])
-print("SCHEME:", d.scheme)
-print("HOST:", d.hostname)
-print("PORT:", d.port)
-print("DB:", d.path.lstrip('/'))
-PY
+          python -c "import os,urllib.parse as u;d=u.urlsplit(os.environ['DATABASE_URL']);print('SCHEME:',d.scheme);print('HOST:',d.hostname);print('PORT:',d.port);print('DB:',d.path.lstrip('/'))"
 
       - name: DNS check
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
-          python - <<'PY'
-import os, urllib.parse as u, subprocess, sys
-h = u.urlsplit(os.environ['DATABASE_URL']).hostname
-print("Resolving:", h)
-sys.exit(subprocess.call(["getent","hosts",h]))
-PY
+          HOST=$(python -c "import os,urllib.parse as u;print(u.urlsplit(os.environ['DATABASE_URL']).hostname)")
+          echo "Resolving: $HOST"
+          getent hosts "$HOST"
 
       - name: Quick connection test
         env:
