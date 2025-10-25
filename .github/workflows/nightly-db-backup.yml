@@ -2,41 +2,37 @@ name: Nightly DB backup
 
 on:
   schedule:
-    - cron: "0 8 * * *"   # 08:00 UTC daily — change if you want
-  workflow_dispatch:       # allow manual run
+    - cron: "0 7 * * *"      # every day at 07:00 UTC
+  workflow_dispatch:         # allow manual run
 
 jobs:
   dump:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+
     steps:
-      - name: Check out repo
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Install PostgreSQL client
-        run: sudo apt-get update && sudo apt-get install -y postgresql-client
-
-      # Build a libpq connection string that forces IPv4 via hostaddr
-      - name: Build connection string
-        id: conn
         run: |
-          echo "CONN=host=${DB_HOST} hostaddr=${DB_HOSTADDR} port=5432 dbname=${DB_NAME} user=${DB_USER} sslmode=require" >> $GITHUB_OUTPUT
-        env:
-          DB_HOST: ${{ secrets.DB_HOST }}          # e.g. db.xxxxx.supabase.co
-          DB_HOSTADDR: ${{ secrets.DB_HOSTADDR }}  # IPv4 literal from Supabase
-          DB_NAME: ${{ secrets.DB_NAME }}          # usually 'postgres' unless you changed it
-          DB_USER: ${{ secrets.DB_USER }}          # usually 'postgres'
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
 
       - name: Dump database
         env:
-          PGPASSWORD: ${{ secrets.DB_PASSWORD }}   # your Postgres password
+          PGHOST: ${{ secrets.PGHOST }}
+          PGPORT: ${{ secrets.PGPORT }}
+          PGDATABASE: ${{ secrets.PGDATABASE }}
+          PGUSER: ${{ secrets.PGUSER }}
         run: |
-          pg_dump "${{ steps.conn.outputs.CONN }}" \
-            --format=custom --no-owner --file=backup.dump
+          set -euo pipefail
+          TS=$(date -u +'%Y%m%dT%H%M%SZ')
+          CONN="host=$PGHOST port=$PGPORT dbname=$PGDATABASE user=$PGUSER password=${{ secrets.PGPASSWORD }} sslmode=require"
+          pg_dump "$CONN" --format=custom --no-owner --no-privileges \
+            | gzip -c > "backup_${TS}.dump.gz"
 
       - name: Upload backup artifact
         uses: actions/upload-artifact@v4
         with:
-          name: pg-backup
-          path: backup.dump
-          retention-days: 14
+          name: postgres-backup
+          path: backup_*.dump.gz
+          retention-days: 7
