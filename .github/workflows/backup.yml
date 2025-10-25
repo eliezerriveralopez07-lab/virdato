@@ -4,7 +4,9 @@ on:
   schedule:
     - cron: "0 4 * * *"     # nightly at 04:00 UTC
   workflow_dispatch: {}      # <-- enables the Run workflow button
-
+  push:
+    paths:
+      - ".github/workflows/backup.yml" 
 jobs:
   dump:
     runs-on: ubuntu-latest
@@ -12,7 +14,8 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: DNS check for PGHOST
-        env: { PGHOST: ${{ secrets.PGHOST }} }
+        env: 
+           PGHOST: ${{ secrets.PGHOST }} }
         run: |
           docker run --rm -e PGHOST busybox sh -lc '
             echo "PGHOST=$PGHOST";
