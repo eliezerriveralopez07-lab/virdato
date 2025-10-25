@@ -1,38 +1,35 @@
-name: Nightly DB backup
+# (Optional) quick connection test — paste this just before the dump
+- name: psql connectivity check
+  env:
+    PGHOST:     ${{ secrets.PGHOST }}
+    PGPORT:     ${{ secrets.PGPORT }}
+    PGUSER:     ${{ secrets.PGUSER }}
+    PGPASSWORD: ${{ secrets.PGPASSWORD }}
+    PGDATABASE: ${{ secrets.PGDATABASE }}
+    PGSSLMODE:  require
+  run: |
+    docker run --rm \
+      -e PGHOST -e PGPORT -e PGUSER -e PGPASSWORD -e PGDATABASE -e PGSSLMODE \
+      postgres:17 bash -lc 'psql -c "\conninfo"'
 
-on:
-  schedule:
-    - cron: "0 4 * * *"   # 04:00 UTC nightly
-  workflow_dispatch:
+# Dump with dockerized pg_dump 17 (Supabase direct connection)
+- name: Dump with dockerized pg_dump 17
+  env:
+    PGHOST:     ${{ secrets.PGHOST }}
+    PGPORT:     ${{ secrets.PGPORT }}
+    PGUSER:     ${{ secrets.PGUSER }}
+    PGPASSWORD: ${{ secrets.PGPASSWORD }}
+    PGDATABASE: ${{ secrets.PGDATABASE }}
+    PGSSLMODE:  require
+  run: |
+    docker run --rm -v "$PWD:/dump" \
+      -e PGHOST -e PGPORT -e PGUSER -e PGPASSWORD -e PGDATABASE -e PGSSLMODE \
+      postgres:17 bash -lc 'pg_dump --format=custom --no-owner -f /dump/backup.dump'
 
-jobs:
-  dump:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout (optional)
-        uses: actions/checkout@v4
-
-      # If your DB is reachable over the internet (not localhost), use this:
-      - name: Dump with dockerized pg_dump 17
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: |
-          docker run --rm -v "$PWD:/dump" -e DATABASE_URL postgres:17 \
-            bash -lc 'pg_dump "$DATABASE_URL" -Fc -f /dump/backup.dump'
-
-      # If your DATABASE_URL points to localhost/127.0.0.1 on the runner,
-      # use host networking instead:
-      # - name: Dump with dockerized pg_dump 17 (host network)
-      #   env:
-      #     DATABASE_URL: ${{ secrets.DATABASE_URL }}
-      #   run: |
-      #     docker run --rm --network host -v "$PWD:/dump" -e DATABASE_URL postgres:17 \
-      #       bash -lc 'pg_dump "$DATABASE_URL" -Fc -f /dump/backup.dump'
-
-      - name: Upload backup artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: db-backup
-          path: backup.dump
-          if-no-files-found: error
+# Upload the dump as an artifact
+- name: Upload backup artifact
+  uses: actions/upload-artifact@v4
+  with:
+    name: db-backup
+    path: backup.dump
+    if-no-files-found: error
