@@ -1,7 +1,9 @@
 name: Nightly DB backup
+
 on:
-  schedule: [{ cron: "0 4 * * *" }]
-  workflow_dispatch:
+  schedule:
+    - cron: "0 4 * * *"     # nightly at 04:00 UTC
+  workflow_dispatch: {}      # <-- enables the Run workflow button
 
 jobs:
   dump:
