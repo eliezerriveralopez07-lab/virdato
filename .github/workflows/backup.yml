@@ -1,35 +1,48 @@
-# (Optional) quick connection test — paste this just before the dump
-- name: psql connectivity check
-  env:
-    PGHOST:     ${{ secrets.PGHOST }}
-    PGPORT:     ${{ secrets.PGPORT }}
-    PGUSER:     ${{ secrets.PGUSER }}
-    PGPASSWORD: ${{ secrets.PGPASSWORD }}
-    PGDATABASE: ${{ secrets.PGDATABASE }}
-    PGSSLMODE:  require
-  run: |
-    docker run --rm \
-      -e PGHOST -e PGPORT -e PGUSER -e PGPASSWORD -e PGDATABASE -e PGSSLMODE \
-      postgres:17 bash -lc 'psql -c "\conninfo"'
+name: Nightly DB backup
 
-# Dump with dockerized pg_dump 17 (Supabase direct connection)
-- name: Dump with dockerized pg_dump 17
-  env:
-    PGHOST:     ${{ secrets.PGHOST }}
-    PGPORT:     ${{ secrets.PGPORT }}
-    PGUSER:     ${{ secrets.PGUSER }}
-    PGPASSWORD: ${{ secrets.PGPASSWORD }}
-    PGDATABASE: ${{ secrets.PGDATABASE }}
-    PGSSLMODE:  require
-  run: |
-    docker run --rm -v "$PWD:/dump" \
-      -e PGHOST -e PGPORT -e PGUSER -e PGPASSWORD -e PGDATABASE -e PGSSLMODE \
-      postgres:17 bash -lc 'pg_dump --format=custom --no-owner -f /dump/backup.dump'
+on:
+  schedule:
+    - cron: "0 4 * * *"   # 04:00 UTC nightly
+  workflow_dispatch:
 
-# Upload the dump as an artifact
-- name: Upload backup artifact
-  uses: actions/upload-artifact@v4
-  with:
-    name: db-backup
-    path: backup.dump
-    if-no-files-found: error
+jobs:
+  dump:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (optional)
+        uses: actions/checkout@v4
+
+      # ---- connectivity check (fails fast if secrets are wrong) ----
+      - name: psql connectivity check
+        env:
+          PGHOST:     ${{ secrets.PGHOST }}
+          PGPORT:     ${{ secrets.PGPORT }}        # 5432
+          PGUSER:     ${{ secrets.PGUSER }}
+          PGPASSWORD: ${{ secrets.PGPASSWORD }}
+          PGDATABASE: ${{ secrets.PGDATABASE }}
+          PGSSLMODE:  require
+        run: |
+          docker run --rm \
+            -e PGHOST -e PGPORT -e PGUSER -e PGPASSWORD -e PGDATABASE -e PGSSLMODE \
+            postgres:17 bash -lc 'psql -c "\conninfo"'
+
+      # ---- dump using pg_dump 17 inside Docker ----
+      - name: Dump with dockerized pg_dump 17
+        env:
+          PGHOST:     ${{ secrets.PGHOST }}
+          PGPORT:     ${{ secrets.PGPORT }}
+          PGUSER:     ${{ secrets.PGUSER }}
+          PGPASSWORD: ${{ secrets.PGPASSWORD }}
+          PGDATABASE: ${{ secrets.PGDATABASE }}
+          PGSSLMODE:  require
+        run: |
+          docker run --rm -v "$PWD:/dump" \
+            -e PGHOST -e PGPORT -e PGUSER -e PGPASSWORD -e PGDATABASE -e PGSSLMODE \
+            postgres:17 bash -lc 'pg_dump --format=custom --no-owner -f /dump/backup.dump'
+
+      - name: Upload backup artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: db-backup
+          path: backup.dump
+          if-no-files-found: error
