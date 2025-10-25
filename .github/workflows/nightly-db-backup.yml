@@ -1,34 +1,9 @@
-name: Nightly DB backup
+- name: Install PostgreSQL 17 client
+  run: |
+    set -euo pipefail
+    echo "deb http://apt.postgresql.org/pub/repos/apt/ $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
+    wget -qO- https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/postgresql.gpg
+    sudo apt-get update
+    sudo apt-get install -y postgresql-client-17
+    pg_dump --version
 
-on:
-  schedule:
-    - cron: "0 7 * * *"    # daily 07:00 UTC
-  workflow_dispatch:
-
-jobs:
-  dump:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install PostgreSQL client
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y postgresql-client
-
-      - name: Dump database (DNS bypass)
-        env:
-          PGPASSWORD: ${{ secrets.PGPASSWORD }}   # set in repo Settings → Secrets
-        run: |
-          set -euo pipefail
-          TS=$(date -u +'%Y%m%dT%H%M%SZ')
-          CONN="hostaddr=63.180.124.183 host=db.qhixhmarbjkvjbspqguz.supabase.co port=5432 dbname=postgres user=backup_user password=$PGPASSWORD sslmode=require"
-          pg_dump "$CONN" --format=custom --no-owner --no-privileges \
-            | gzip -c > "backup_${TS}.dump.gz"
-
-      - name: Upload backup artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: postgres-backup
-          path: backup_*.dump.gz
-          retention-days: 7
