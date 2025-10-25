@@ -2,13 +2,12 @@ name: Nightly DB backup
 
 on:
   schedule:
-    - cron: "0 7 * * *"      # every day at 07:00 UTC
-  workflow_dispatch:         # allow manual run
+    - cron: "0 7 * * *"    # daily 07:00 UTC
+  workflow_dispatch:
 
 jobs:
   dump:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
 
@@ -17,16 +16,13 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y postgresql-client
 
-      - name: Dump database
+      - name: Dump database (DNS bypass)
         env:
-          PGHOST: ${{ secrets.PGHOST }}
-          PGPORT: ${{ secrets.PGPORT }}
-          PGDATABASE: ${{ secrets.PGDATABASE }}
-          PGUSER: ${{ secrets.PGUSER }}
+          PGPASSWORD: ${{ secrets.PGPASSWORD }}   # set in repo Settings → Secrets
         run: |
           set -euo pipefail
           TS=$(date -u +'%Y%m%dT%H%M%SZ')
-          CONN="host=$PGHOST port=$PGPORT dbname=$PGDATABASE user=$PGUSER password=${{ secrets.PGPASSWORD }} sslmode=require"
+          CONN="hostaddr=63.180.124.183 host=db.qhixhmarbjkvjbspqguz.supabase.co port=5432 dbname=postgres user=backup_user password=$PGPASSWORD sslmode=require"
           pg_dump "$CONN" --format=custom --no-owner --no-privileges \
             | gzip -c > "backup_${TS}.dump.gz"
 
