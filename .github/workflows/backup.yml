@@ -1,56 +1,48 @@
-name: Nightly DB backup
+name: nightly-db-dump
 
 on:
   schedule:
-    - cron: "0 4 * * *"     # nightly at 04:00 UTC
-  workflow_dispatch: {}      # <-- enables the Run workflow button
-  push:
-    paths:
-      - ".github/workflows/backup.yml" 
+    - cron: "0 4 * * *"   # 04:00 UTC daily
+  workflow_dispatch:
+
 jobs:
   dump:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: DNS check for PGHOST
-        env: 
-           PGHOST: ${{ secrets.PGHOST }} }
+      - name: Ensure required vars
         run: |
-          docker run --rm -e PGHOST busybox sh -lc '
-            echo "PGHOST=$PGHOST";
-            nslookup "$PGHOST" || echo "nslookup failed";
-            getent hosts "$PGHOST" || echo "getent failed"
-          '
+          : "${{ secrets.DB_HOST:?Missing DB_HOST }}"
+          : "${{ secrets.DB_PORT:?Missing DB_PORT }}"
+          : "${{ secrets.DB_USER:?Missing DB_USER }}"
+          : "${{ secrets.DB_NAME:?Missing DB_NAME }}"
+          : "${{ secrets.DB_PASSWORD:?Missing DB_PASSWORD }}"
 
-      - name: psql connectivity check
+      - name: Connectivity check
         env:
-          PGHOST:     ${{ secrets.PGHOST }}
-          PGPORT:     ${{ secrets.PGPORT }}
-          PGUSER:     ${{ secrets.PGUSER }}
-          PGPASSWORD: ${{ secrets.PGPASSWORD }}
-          PGDATABASE: ${{ secrets.PGDATABASE }}
-          PGSSLMODE:  require
+          PGPASSWORD: ${{ secrets.DB_PASSWORD }}
         run: |
-          docker run --rm \
-            -e PGHOST -e PGPORT -e PGUSER -e PGPASSWORD -e PGDATABASE -e PGSSLMODE \
-            postgres:17 bash -lc 'psql -c "\conninfo"'
+          psql -h "${{ secrets.DB_HOST }}" -p "${{ secrets.DB_PORT }}" \
+               -U "${{ secrets.DB_USER }}" -d "${{ secrets.DB_NAME }}" \
+               -c "SELECT 1;"
 
-      - name: Dump with dockerized pg_dump 17
+      - name: Dump database
         env:
-          PGHOST:     ${{ secrets.PGHOST }}
-          PGPORT:     ${{ secrets.PGPORT }}
-          PGUSER:     ${{ secrets.PGUSER }}
-          PGPASSWORD: ${{ secrets.PGPASSWORD }}
-          PGDATABASE: ${{ secrets.PGDATABASE }}
-          PGSSLMODE:  require
+          PGPASSWORD: ${{ secrets.DB_PASSWORD }}
         run: |
-          docker run --rm -v "$PWD:/dump" \
-            -e PGHOST -e PGPORT -e PGUSER -e PGPASSWORD -e PGDATABASE -e PGSSLMODE \
-            postgres:17 bash -lc 'pg_dump --format=custom --no-owner -f /dump/backup.dump'
+          ts=$(date -u +'%Y%m%dT%H%M%SZ')
+          pg_dump -h "${{ secrets.DB_HOST }}" -p "${{ secrets.DB_PORT }}" \
+                  -U "${{ secrets.DB_USER }}" -d "${{ secrets.DB_NAME }}" \
+                  --format=custom --no-owner --no-privileges \
+                  --file "dump_${ts}.pgc"
+          echo "artifact=dump_${ts}.pgc" >> $GITHUB_OUTPUT
+        id: dump
 
-      - uses: actions/upload-artifact@v4
+      - name: Upload dump
+        uses: actions/upload-artifact@v4
         with:
-          name: db-backup
-          path: backup.dump
+          name: pg-dump
+          path: ${{ steps.dump.outputs.artifact }}
           if-no-files-found: error
+
