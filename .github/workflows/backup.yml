@@ -1,53 +1,29 @@
-name: nightly-db-dump
-
-on:
-  schedule:
-    - cron: "0 4 * * *"   # 04:00 UTC daily
-  workflow_dispatch:
-
-jobs:
-  dump:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
       - name: Connectivity + dump
         id: db
         shell: bash
         env:
           PGPASSWORD: ${{ secrets.DB_PASSWORD }}
           DB_HOST: ${{ secrets.DB_HOST }}
-          DB_PORT: ${{ secrets.DB_PORT }}   # may be empty; we’ll default in bash
+          DB_PORT: ${{ secrets.DB_PORT }}
           DB_USER: ${{ secrets.DB_USER }}
           DB_NAME: ${{ secrets.DB_NAME }}
         run: |
           set -euo pipefail
 
-          # Validate required vars (bash syntax—belongs inside the script)
-          : "${DB_HOST:?Missing DB_HOST}"
-          : "${DB_USER:?Missing DB_USER}"
-          : "${DB_NAME:?Missing DB_NAME}"
-          : "${PGPASSWORD:?Missing DB_PASSWORD}"
-
-          # Default port if not set
           DB_PORT="${DB_PORT:-5432}"
 
-          echo "Testing connectivity to $DB_HOST:$DB_PORT/$DB_NAME ..."
-          psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c "SELECT 1;"
+          echo "Installing PostgreSQL 17 client tools..."
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client-17
+
+          echo "Testing connectivity ..."
+          psql "host=$DB_HOST port=$DB_PORT user=$DB_USER dbname=$DB_NAME sslmode=require" -c "SELECT 1;"
 
           ts=$(date -u +'%Y%m%dT%H%M%SZ')
           outfile="dump_${ts}.pgc"
 
-          echo "Running pg_dump ..."
-          pg_dump -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" \
+          echo "Running pg_dump with version 17..."
+          pg_dump "host=$DB_HOST port=$DB_PORT user=$DB_USER dbname=$DB_NAME sslmode=require" \
             --format=custom --no-owner --no-privileges --file "$outfile"
 
           echo "outfile=$outfile" >> "$GITHUB_OUTPUT"
-
-      - name: Upload dump
-        uses: actions/upload-artifact@v4
-        with:
-          name: pg-dump
-          path: ${{ steps.db.outputs.outfile }}
-          if-no-files-found: error
