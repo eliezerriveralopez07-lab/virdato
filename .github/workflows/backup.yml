@@ -3,7 +3,7 @@ name: nightly-db-dump
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 4 * * *"   # daily at 04:00 UTC
+    - cron: "0 4 * * *"
 
 jobs:
   dump:
@@ -11,20 +11,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install PostgreSQL 17 client
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq postgresql-client-17
-
-      - name: Connectivity + dump
+      - name: Connectivity + dump via Docker (Postgres 17)
         id: db
         shell: bash
         env:
           PGPASSWORD: ${{ secrets.DB_PASSWORD }}
-          DB_HOST: ${{ secrets.DB_HOST }}       # e.g. db.qhixhmarbjkvjbsqpguz.supabase.co
-          DB_PORT: ${{ secrets.DB_PORT }}       # set 5432 or leave empty
-          DB_USER: ${{ secrets.DB_USER }}       # backup_user
-          DB_NAME: ${{ secrets.DB_NAME }}       # postgres
+          DB_HOST: ${{ secrets.DB_HOST }}     # db.qhixhmarbjkvjbsqpguz.supabase.co
+          DB_PORT: ${{ secrets.DB_PORT }}     # 5432
+          DB_USER: ${{ secrets.DB_USER }}     # backup_user
+          DB_NAME: ${{ secrets.DB_NAME }}     # postgres
         run: |
           set -euo pipefail
           : "${DB_HOST:?Missing DB_HOST}"
@@ -33,15 +28,23 @@ jobs:
           : "${PGPASSWORD:?Missing DB_PASSWORD}"
           DB_PORT="${DB_PORT:-5432}"
 
-          echo "Testing connectivity ..."
-          psql "host=$DB_HOST port=$DB_PORT user=$DB_USER dbname=$DB_NAME sslmode=require" -c "SELECT 1;"
+          echo "Testing connectivity with Postgres 17 client (Docker)..."
+          docker run --rm \
+            -e PGPASSWORD="$PGPASSWORD" \
+            -e PGSSLMODE=require \
+            postgres:17-alpine \
+            psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c "SELECT 1;"
 
           ts=$(date -u +'%Y%m%dT%H%M%SZ')
           outfile="dump_${ts}.pgc"
 
-          echo "Running pg_dump ..."
-          pg_dump "host=$DB_HOST port=$DB_PORT user=$DB_USER dbname=$DB_NAME sslmode=require" \
-            --format=custom --no-owner --no-privileges --file "$outfile"
+          echo "Running pg_dump (version 17) ..."
+          docker run --rm \
+            -e PGPASSWORD="$PGPASSWORD" \
+            -e PGSSLMODE=require \
+            -v "$PWD":/work \
+            postgres:17-alpine \
+            sh -c "pg_dump -h \"$DB_HOST\" -p \"$DB_PORT\" -U \"$DB_USER\" -d \"$DB_NAME\" -F c -f \"/work/$outfile\""
 
           echo "outfile=$outfile" >> "$GITHUB_OUTPUT"
 
