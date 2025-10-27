@@ -12,56 +12,42 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Map secrets to env vars for this step only
-      - name: Ensure required vars
+      - name: Connectivity + dump
+        id: db
+        shell: bash
         env:
+          PGPASSWORD: ${{ secrets.DB_PASSWORD }}
           DB_HOST: ${{ secrets.DB_HOST }}
-          DB_PORT: ${{ secrets.DB_PORT }}
+          DB_PORT: ${{ secrets.DB_PORT }}   # may be empty; we’ll default in bash
           DB_USER: ${{ secrets.DB_USER }}
           DB_NAME: ${{ secrets.DB_NAME }}
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
         run: |
-          # Bash parameter expansion guards (must be in the shell, not in ${{ }})
+          set -euo pipefail
+
+          # Validate required vars (bash syntax—belongs inside the script)
           : "${DB_HOST:?Missing DB_HOST}"
           : "${DB_USER:?Missing DB_USER}"
           : "${DB_NAME:?Missing DB_NAME}"
-          : "${DB_PASSWORD:?Missing DB_PASSWORD}"
-          # Optional port default to 5432 if not set
-          : "${DB_PORT:=5432}"
-          echo "Inputs look good."
+          : "${PGPASSWORD:?Missing DB_PASSWORD}"
 
-      - name: Connectivity check
-        env:
-          PGPASSWORD: ${{ secrets.DB_PASSWORD }}
-          DB_HOST: ${{ secrets.DB_HOST }}
-          DB_PORT: ${{ secrets.DB_PORT }}
-          DB_USER: ${{ secrets.DB_USER }}
-          DB_NAME: ${{ secrets.DB_NAME }}
-        run: |
-          psql -h "${DB_HOST}" -p "${DB_PORT:-5432}" \
-               -U "${DB_USER}" -d "${DB_NAME}" \
-               -c "SELECT 1;"
+          # Default port if not set
+          DB_PORT="${DB_PORT:-5432}"
 
-      - name: Dump database
-        id: dump
-        env:
-          PGPASSWORD: ${{ secrets.DB_PASSWORD }}
-          DB_HOST: ${{ secrets.DB_HOST }}
-          DB_PORT: ${{ secrets.DB_PORT }}
-          DB_USER: ${{ secrets.DB_USER }}
-          DB_NAME: ${{ secrets.DB_NAME }}
-        run: |
+          echo "Testing connectivity to $DB_HOST:$DB_PORT/$DB_NAME ..."
+          psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c "SELECT 1;"
+
           ts=$(date -u +'%Y%m%dT%H%M%SZ')
           outfile="dump_${ts}.pgc"
-          pg_dump -h "${DB_HOST}" -p "${DB_PORT:-5432}" \
-                  -U "${DB_USER}" -d "${DB_NAME}" \
-                  --format=custom --no-owner --no-privileges \
-                  --file "$outfile"
-          echo "artifact=$outfile" >> "$GITHUB_OUTPUT"
+
+          echo "Running pg_dump ..."
+          pg_dump -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" \
+            --format=custom --no-owner --no-privileges --file "$outfile"
+
+          echo "outfile=$outfile" >> "$GITHUB_OUTPUT"
 
       - name: Upload dump
         uses: actions/upload-artifact@v4
         with:
           name: pg-dump
-          path: ${{ steps.dump.outputs.artifact }}
+          path: ${{ steps.db.outputs.outfile }}
           if-no-files-found: error
