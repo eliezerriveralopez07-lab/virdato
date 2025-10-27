@@ -16,7 +16,7 @@ jobs:
         shell: bash
         env:
           PGPASSWORD: ${{ secrets.DB_PASSWORD }}
-          DB_HOST: ${{ secrets.DB_HOST }}     # db.qhixhmarbjkvjbsqpguz.supabase.co
+          DB_HOST: ${{ secrets.DB_HOST }}     # e.g. db.qhixhmarbjkvjbsqpguz.supabase.co
           DB_PORT: ${{ secrets.DB_PORT }}     # 5432
           DB_USER: ${{ secrets.DB_USER }}     # backup_user
           DB_NAME: ${{ secrets.DB_NAME }}     # postgres
@@ -38,13 +38,18 @@ jobs:
           ts=$(date -u +'%Y%m%dT%H%M%SZ')
           outfile="dump_${ts}.pgc"
 
-          echo "Running pg_dump (version 17) ..."
+          echo "Running pg_dump (v17) excluding restricted schemas..."
           docker run --rm \
             -e PGPASSWORD="$PGPASSWORD" \
             -e PGSSLMODE=require \
             -v "$PWD":/work \
             postgres:17-alpine \
-            sh -c "pg_dump -h \"$DB_HOST\" -p \"$DB_PORT\" -U \"$DB_USER\" -d \"$DB_NAME\" -F c -f \"/work/$outfile\""
+            sh -c "pg_dump -h \"$DB_HOST\" -p \"$DB_PORT\" -U \"$DB_USER\" -d \"$DB_NAME\" \
+                   --format=custom --no-owner --no-privileges \
+                   --exclude-schema=auth \
+                   --exclude-schema=storage \
+                   --exclude-schema=realtime \
+                   --file \"/work/$outfile\""
 
           echo "outfile=$outfile" >> "$GITHUB_OUTPUT"
 
