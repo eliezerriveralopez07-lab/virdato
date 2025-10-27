@@ -3,11 +3,12 @@ name: nightly-db-dump
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 4 * * *"
+    - cron: "0 4 * * *"   # daily at 04:00 UTC
 
 jobs:
   dump:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
 
@@ -15,11 +16,12 @@ jobs:
         id: db
         shell: bash
         env:
-          PGPASSWORD: ${{ secrets.DB_PASSWORD }}
-          DB_HOST: ${{ secrets.DB_HOST }}     # e.g. db.qhixhmarbjkvjbsqpguz.supabase.co
-          DB_PORT: ${{ secrets.DB_PORT }}     # 5432
-          DB_USER: ${{ secrets.DB_USER }}     # backup_user
-          DB_NAME: ${{ secrets.DB_NAME }}     # postgres
+          # Secrets you must set in GitHub → Settings → Secrets and variables → Actions
+          PGPASSWORD: ${{ secrets.DB_PASSWORD }}   # e.g., backup_user (or postgres) password
+          DB_HOST: ${{ secrets.DB_HOST }}          # e.g., db.qhixhmarbjkvjbsqpguz.supabase.co
+          DB_PORT: ${{ secrets.DB_PORT }}          # 5432
+          DB_USER: ${{ secrets.DB_USER }}          # backup_user (or postgres)
+          DB_NAME: ${{ secrets.DB_NAME }}          # postgres
         run: |
           set -euo pipefail
           : "${DB_HOST:?Missing DB_HOST}"
@@ -38,7 +40,7 @@ jobs:
           ts=$(date -u +'%Y%m%dT%H%M%SZ')
           outfile="dump_${ts}.pgc"
 
-          echo "Running pg_dump (v17) excluding restricted schemas..."
+          echo "Running pg_dump (v17) excluding restricted schemas and RLS tables..."
           docker run --rm \
             -e PGPASSWORD="$PGPASSWORD" \
             -e PGSSLMODE=require \
@@ -49,6 +51,7 @@ jobs:
                    --exclude-schema=auth \
                    --exclude-schema=storage \
                    --exclude-schema=realtime \
+                   --exclude-table-data='public.\"Virdato\"' \
                    --file \"/work/$outfile\""
 
           echo "outfile=$outfile" >> "$GITHUB_OUTPUT"
