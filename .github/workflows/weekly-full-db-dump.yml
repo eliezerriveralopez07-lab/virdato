@@ -1,0 +1,93 @@
+name: weekly-full-db-dump
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 3 * * MON"   # 03:00 UTC every Monday
+
+jobs:
+  full-dump:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Full dump via Docker (Postgres 17, superuser)
+        id: db
+        shell: bash
+        env:
+          # Superuser creds (kept ONLY in Actions secrets)
+          PGPASSWORD: ${{ secrets.DB_PASSWORD_SUPER }}
+          DB_HOST:     ${{ secrets.DB_HOST }}
+          DB_PORT:     ${{ secrets.DB_PORT }}
+          DB_USER:     ${{ secrets.DB_USER_SUPER }}    # postgres
+          DB_NAME:     ${{ secrets.DB_NAME }}          # postgres
+
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+          AWS_REGION:        ${{ secrets.AWS_REGION }}
+          S3_BUCKET:         ${{ secrets.S3_BUCKET }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          set -euo pipefail
+          : "${DB_HOST:?Missing DB_HOST}"; : "${DB_USER:?Missing DB_USER_SUPER}"; : "${DB_NAME:?Missing DB_NAME}"
+          : "${PGPASSWORD:?Missing DB_PASSWORD_SUPER}"; DB_PORT="${DB_PORT:-5432}"
+
+          echo "Connectivity check (superuser)..."
+          docker run --rm -e PGPASSWORD="$PGPASSWORD" -e PGSSLMODE=require \
+            postgres:17-alpine \
+            psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c "SHOW server_version; SELECT 1;"
+
+          ts=$(date -u +'%Y%m%dT%H%M%SZ'); outfile="full_${ts}.pgc"
+          echo "FULL dump (no RLS excludes) → $outfile"
+          docker run --rm -e PGPASSWORD="$PGPASSWORD" -e PGSSLMODE=require -v "$PWD":/work \
+            postgres:17-alpine sh -c "
+              pg_dump -h \"$DB_HOST\" -p \"$DB_PORT\" -U \"$DB_USER\" -d \"$DB_NAME\" \
+                      --format=custom --no-owner --no-privileges \
+                      --file \"/work/$outfile\"
+            "
+
+          echo "Encrypting..."
+          : "${BACKUP_PASSPHRASE:?Missing BACKUP_PASSPHRASE}"
+          gpg --batch --yes --passphrase "$BACKUP_PASSPHRASE" --symmetric --cipher-algo AES256 "$outfile"
+          shasum -a 256 "$outfile.gpg" > "$outfile.gpg.sha256"
+
+          echo "outfile=$outfile.gpg" >> "$GITHUB_OUTPUT"
+          echo "checksum=$outfile.gpg.sha256" >> "$GITHUB_OUTPUT"
+
+      - name: Configure AWS
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region:            ${{ secrets.AWS_REGION }}
+
+      - name: Upload to S3 (weekly/full)
+        env:
+          S3_BUCKET: ${{ secrets.S3_BUCKET }}
+        run: |
+          set -euo pipefail
+          aws s3 cp "${{ steps.db.outputs.outfile }}"  "s3://${S3_BUCKET}/weekly/${{ steps.db.outputs.outfile }}"
+          aws s3 cp "${{ steps.db.outputs.checksum }}" "s3://${S3_BUCKET}/weekly/${{ steps.db.outputs.checksum }}"
+
+      - name: Upload artifacts (optional)
+        uses: actions/upload-artifact@v4
+        with:
+          name: pg-dump-weekly-full
+          path: |
+            ${{ steps.db.outputs.outfile }}
+            ${{ steps.db.outputs.checksum }}
+
+      - name: Notify Slack (success)
+        if: success()
+        run: |
+          [ -z "${SLACK_WEBHOOK_URL:-}" ] && exit 0
+          curl -X POST -H 'Content-type: application/json' --data \
+          "$(jq -n --arg t 'Weekly FULL DB backup ✅' --arg f '${{ steps.db.outputs.outfile }}' \
+             --arg b '${{ secrets.S3_BUCKET }}' \
+             '{text: ($t + " uploaded to s3://" + $b + "/weekly/" + $f)}')" \
+          "$SLACK_WEBHOOK_URL"
+
+      - name: Notify Slack (failure)
+        if: failure()
+        run: |
+          [ -z "${SLACK_WEBHOOK_URL:-}" ] && exit 0
+          curl -X POST -H 'Content-type: application/json' --data '{"text":"Weekly FULL DB backup ❌ failed"}' "$SLACK_WEBHOOK_URL"
