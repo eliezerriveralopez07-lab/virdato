@@ -1,0 +1,48 @@
+name: Supabase DB Dump
+
+on:
+  workflow_dispatch: {}   # run manually from the Actions tab
+  # schedule:             # (optional) uncomment to run nightly at 02:00 UTC
+  #   - cron: "0 2 * * *"
+
+jobs:
+  dump:
+    runs-on: ubuntu-latest
+
+    env:
+      POSTGRES_HOST: ${{ secrets.POSTGRES_HOST }}       # e.g. db.xxxxx.supabase.co
+      POSTGRES_PORT: ${{ secrets.POSTGRES_PORT }}       # set this secret to 5432
+      POSTGRES_DB:   ${{ secrets.POSTGRES_DB }}         # usually "postgres" unless you created another
+      POSTGRES_USER: ${{ secrets.POSTGRES_USER }}       # usually "postgres"
+      POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+
+    steps:
+      - name: Checkout (optional)
+        uses: actions/checkout@v4
+
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+      - name: Dump Supabase database (SSL required)
+        run: |
+          set -e
+          export PGPASSWORD="$POSTGRES_PASSWORD"
+          TS=$(date -u +'%Y%m%dT%H%M%SZ')
+          FILE="supabase_dump_${TS}.dump"
+
+          # Use a direct connection (NOT the pooler) and force SSL
+          pg_dump "host=${POSTGRES_HOST} port=${POSTGRES_PORT} dbname=${POSTGRES_DB} user=${POSTGRES_USER} sslmode=require" \
+            --format=custom --no-owner --no-privileges \
+            -f "$FILE"
+
+          echo "Created dump: $FILE"
+          ls -lh "$FILE"
+
+      - name: Upload dump artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: supabase-dump
+          path: "*.dump"
+          retention-days: 7
