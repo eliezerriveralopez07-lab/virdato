@@ -14,6 +14,14 @@ jobs:
       POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
 
     steps:
+      - name: Preflight: sanitize and DNS check
+        run: |
+          set -e
+          CLEAN_HOST=$(printf "%s" "$POSTGRES_HOST" | tr -d '\r\n\t ')
+          echo "Using sanitized host"
+          getent hosts "$CLEAN_HOST" >/dev/null || (echo "DNS lookup failed for $CLEAN_HOST"; exit 1)
+          echo "CLEAN_HOST=$CLEAN_HOST" >> $GITHUB_ENV
+
       - name: Dump using Postgres 17 (Docker) with SSL
         run: |
           set -e
@@ -24,7 +32,7 @@ jobs:
             -e PGPASSWORD="${POSTGRES_PASSWORD}" \
             -v "$PWD:/out" \
             postgres:17-alpine \
-            sh -c 'pg_dump "host='"${POSTGRES_HOST}"' port='"${POSTGRES_PORT}"' dbname='"${POSTGRES_DB}"' user='"${POSTGRES_USER}"' sslmode=require" \
+            sh -c 'pg_dump "host='"${CLEAN_HOST}"' port='"${POSTGRES_PORT}"' dbname='"${POSTGRES_DB}"' user='"${POSTGRES_USER}"' sslmode=require" \
                    --format=custom --no-owner --no-privileges -f /out/'"$FILE"
 
           ls -lh "$FILE"
