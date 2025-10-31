@@ -1,39 +1,31 @@
 name: Supabase DB Dump
 
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
 
 jobs:
   dump:
     runs-on: ubuntu-latest
-    env:
-      POSTGRES_HOST: ${{ secrets.POSTGRES_HOST }}
-      POSTGRES_PORT: ${{ secrets.POSTGRES_PORT }}
-      POSTGRES_DB:   ${{ secrets.POSTGRES_DB }}
-      POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
-      POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
 
     steps:
-      - name: Preflight: sanitize and DNS check
-        run: |
-          set -e
-          CLEAN_HOST=$(printf "%s" "$POSTGRES_HOST" | tr -d '\r\n\t ')
-          echo "Using sanitized host"
-          getent hosts "$CLEAN_HOST" >/dev/null || (echo "DNS lookup failed for $CLEAN_HOST"; exit 1)
-          echo "CLEAN_HOST=$CLEAN_HOST" >> $GITHUB_ENV
-
       - name: Dump using Postgres 17 (Docker) with SSL
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}   # e.g. postgresql://postgres:PASSWORD@db.<ref>.supabase.co:5432/postgres
         run: |
-          set -e
+          set -euo pipefail
+
+          # Ensure sslmode=require is present
+          if [[ "$DATABASE_URL" == *"?"* ]]; then
+            CONN="${DATABASE_URL}&sslmode=require"
+          else
+            CONN="${DATABASE_URL}?sslmode=require"
+          fi
+
           TS=$(date -u +'%Y%m%dT%H%M%SZ')
           FILE="supabase_dump_${TS}.dump"
 
-          docker run --rm \
-            -e PGPASSWORD="${POSTGRES_PASSWORD}" \
-            -v "$PWD:/out" \
-            postgres:17-alpine \
-            sh -c 'pg_dump "host='"${CLEAN_HOST}"' port='"${POSTGRES_PORT}"' dbname='"${POSTGRES_DB}"' user='"${POSTGRES_USER}"' sslmode=require" \
-                   --format=custom --no-owner --no-privileges -f /out/'"$FILE"
+          docker run --rm -v "$PWD:/out" postgres:17-alpine \
+            sh -lc "pg_dump \"$CONN\" --format=custom --no-owner --no-privileges -f /out/$FILE"
 
           ls -lh "$FILE"
 
