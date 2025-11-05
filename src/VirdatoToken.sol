@@ -15,15 +15,9 @@ contract VirdatoToken is ERC20, ERC20Permit, Ownable, Pausable {
         _mint(owner_, initialSupply);
     }
 
-    function pause() external onlyOwner {
-        _pause();
-    }
+    function pause() external onlyOwner { _pause(); }
+    function unpause() external onlyOwner { _unpause(); }
 
-    function unpause() external onlyOwner {
-        _unpause();
-    }
-
-    // Block transfers while paused
     function _beforeTokenTransfer(address from, address to, uint256 amount)
         internal
         override
@@ -32,4 +26,3 @@ contract VirdatoToken is ERC20, ERC20Permit, Ownable, Pausable {
         super._beforeTokenTransfer(from, to, amount);
     }
 }
-
