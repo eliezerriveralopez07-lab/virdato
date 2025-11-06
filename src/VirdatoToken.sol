@@ -4,7 +4,7 @@ pragma solidity ^0.8.24;
 import {ERC20} from "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 import {ERC20Permit} from "openzeppelin-contracts/contracts/token/ERC20/extensions/ERC20Permit.sol";
 import {Ownable} from "openzeppelin-contracts/contracts/access/Ownable.sol";
-import {Pausable} from "openzeppelin-contracts/contracts/security/Pausable.sol";
+import {Pausable} from "openzeppelin-contracts/contracts/utils/Pausable.sol";
 
 contract VirdatoToken is ERC20, ERC20Permit, Ownable, Pausable {
     constructor(address owner_, uint256 initialSupply)
