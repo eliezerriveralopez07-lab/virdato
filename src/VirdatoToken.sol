@@ -10,12 +10,11 @@ contract VirdatoToken is ERC20, ERC20Permit, ERC20Pausable, Ownable {
     constructor(address owner_, uint256 initialSupply)
         ERC20("Virdato", "VIRD")
         ERC20Permit("Virdato")
+        Ownable(owner_) // <-- v5 requires this
     {
-        _transferOwnership(owner_);
         _mint(owner_, initialSupply);
     }
 
-    // Owner-controlled pause/unpause (ERC20Pausable handles blocking transfers)
     function pause() external onlyOwner { _pause(); }
     function unpause() external onlyOwner { _unpause(); }
 }
