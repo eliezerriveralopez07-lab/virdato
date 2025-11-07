@@ -1,0 +1,47 @@
+name: pg-dump
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 7 * * *"  # daily at 07:00 UTC
+
+jobs:
+  dump:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+      - name: Verify connectivity
+        env:
+          PGHOST: ${{ secrets.PGHOST }}
+          PGPORT: ${{ secrets.PGPORT }}
+          PGUSER: ${{ secrets.PGUSER }}
+          PGPASSWORD: ${{ secrets.PGPASSWORD }}
+          PGDATABASE: ${{ secrets.PGDATABASE }}
+          PGSSLMODE: ${{ vars.PGSSLMODE }}  # set repo variable to "require" if your provider needs SSL
+        run: |
+          set -euo pipefail
+          psql -c "select version(), current_user, current_database();" -v ON_ERROR_STOP=1
+
+      - name: Dump database
+        env:
+          PGHOST: ${{ secrets.PGHOST }}
+          PGPORT: ${{ secrets.PGPORT }}
+          PGUSER: ${{ secrets.PGUSER }}
+          PGPASSWORD: ${{ secrets.PGPASSWORD }}
+          PGDATABASE: ${{ secrets.PGDATABASE }}
+          PGSSLMODE: ${{ vars.PGSSLMODE }}
+        run: |
+          set -euo pipefail
+          ts="$(date -u +%Y%m%dT%H%M%SZ)"
+          pg_dump --format=custom --no-owner --no-privileges --blobs --verbose \
+            -f "dump_${ts}.pgcustom"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pg-dump
+          path: dump_*.pgcustom
+          retention-days: 14
