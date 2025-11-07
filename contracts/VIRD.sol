@@ -6,7 +6,7 @@ import {Ownable} from "openzeppelin-contracts/contracts/access/Ownable.sol";
 
 contract VIRD is ERC20, Ownable {
     constructor() ERC20("Virdato", "VIRD") Ownable(msg.sender) {
-        _mint(msg.sender, 1_000_000 ether); // optional bootstrap
+        _mint(msg.sender, 1_000_000 ether);
     }
     function mint(address to, uint256 amount) external onlyOwner { _mint(to, amount); }
 }
