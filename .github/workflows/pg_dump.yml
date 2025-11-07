@@ -2,7 +2,7 @@ name: pg-dump
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 7 * * *"  # daily at 07:00 UTC
+    - cron: "0 7 * * *"
 
 jobs:
   dump:
@@ -20,9 +20,10 @@ jobs:
           PGUSER: ${{ secrets.PGUSER }}
           PGPASSWORD: ${{ secrets.PGPASSWORD }}
           PGDATABASE: ${{ secrets.PGDATABASE }}
-          PGSSLMODE: ${{ vars.PGSSLMODE }}  # set repo variable to "require" if your provider needs SSL
+          PGSSLMODE: ${{ vars.PGSSLMODE || 'require' }}   # <— default if not set
         run: |
           set -euo pipefail
+          export PGSSLMODE="${PGSSLMODE:-require}"        # <— guard empty values
           psql -c "select version(), current_user, current_database();" -v ON_ERROR_STOP=1
 
       - name: Dump database
@@ -32,9 +33,10 @@ jobs:
           PGUSER: ${{ secrets.PGUSER }}
           PGPASSWORD: ${{ secrets.PGPASSWORD }}
           PGDATABASE: ${{ secrets.PGDATABASE }}
-          PGSSLMODE: ${{ vars.PGSSLMODE }}
+          PGSSLMODE: ${{ vars.PGSSLMODE || 'require' }}   # <— default if not set
         run: |
           set -euo pipefail
+          export PGSSLMODE="${PGSSLMODE:-require}"
           ts="$(date -u +%Y%m%dT%H%M%SZ)"
           pg_dump --format=custom --no-owner --no-privileges --blobs --verbose \
             -f "dump_${ts}.pgcustom"
