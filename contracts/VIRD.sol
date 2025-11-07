@@ -1,12 +1,20 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.24;
+pragma solidity ^0.8.26;
 
-import {ERC20}  from "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
+import {ERC20} from "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
+import {ERC20Permit} from "openzeppelin-contracts/contracts/token/ERC20/extensions/ERC20Permit.sol";
+import {ERC20Pausable} from "openzeppelin-contracts/contracts/token/ERC20/extensions/ERC20Pausable.sol";
 import {Ownable} from "openzeppelin-contracts/contracts/access/Ownable.sol";
 
-contract VIRD is ERC20, Ownable {
-    constructor() ERC20("Virdato", "VIRD") Ownable(msg.sender) {
-        _mint(msg.sender, 1_000_000 ether);
+contract VirdatoToken is ERC20, ERC20Permit, ERC20Pausable, Ownable {
+    constructor(address owner_, uint256 initialSupply)
+        ERC20("Virdato", "VIRD")
+        ERC20Permit("Virdato")
+        Ownable(owner_) // ✅ pass initial owner to OZ v5 Ownable
+    {
+        _mint(owner_, initialSupply);
     }
-    function mint(address to, uint256 amount) external onlyOwner { _mint(to, amount); }
+
+    function pause() external onlyOwner { _pause(); }
+    function unpause() external onlyOwner { _unpause(); }
 }
