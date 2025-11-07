@@ -1,0 +1,16 @@
+cat > foundry.toml << 'EOF'
+[profile.default]
+src = "contracts"
+out = "out"
+libs = ["lib"]
+remappings = [
+  "forge-std/=lib/forge-std/src/",
+  "openzeppelin-contracts/=lib/openzeppelin-contracts/"
+]
+
+[rpc_endpoints]
+amoy = "${RPC_URL}"
+
+[etherscan]
+amoy = { key = "${POLYGONSCAN_API_KEY}" }
+EOF
