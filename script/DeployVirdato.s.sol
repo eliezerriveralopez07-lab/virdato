@@ -1,16 +1,17 @@
+cat > script/DeployVIRD.s.sol << 'EOF'
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
 import "forge-std/Script.sol";
-import {VirdatoToken} from "../src/VirdatoToken.sol";
+import {VIRD} from "../contracts/VIRD.sol";
 
-contract DeployVirdato is Script {
+contract DeployVIRD is Script {
     function run() external {
-        address owner = vm.envAddress("OWNER");
-        uint256 supply = vm.envUint("INITIAL_SUPPLY"); // in wei (e.g., 1e24 for 1M VIRD with 18 decimals)
-
-        vm.startBroadcast();
-        new VirdatoToken(owner, supply);
+        uint256 key = vm.envUint("PRIVATE_KEY");
+        vm.startBroadcast(key);
+        VIRD token = new VIRD();
         vm.stopBroadcast();
+        console2.log("VIRD deployed at:", address(token));
     }
 }
+EOF
