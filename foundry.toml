@@ -1,4 +1,3 @@
-cat > foundry.toml << 'EOF'
 [profile.default]
 src = "contracts"
 out = "out"
@@ -13,4 +12,3 @@ amoy = "${RPC_URL}"
 
 [etherscan]
 amoy = { key = "${POLYGONSCAN_API_KEY}" }
-EOF
