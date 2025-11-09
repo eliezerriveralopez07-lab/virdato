@@ -1,0 +1,5 @@
+:root {
+  --font-geist-sans: sans-serif;
+  --font-geist-mono: monospace;
+}
+html, body { padding: 0; margin: 0; }
