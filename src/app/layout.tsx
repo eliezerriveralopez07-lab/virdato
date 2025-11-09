@@ -1,6 +1,6 @@
 // src/app/layout.tsx
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "geist/font"; // uses the Geist package
+import { Geist, Geist_Mono } from "geist/font";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -31,3 +31,4 @@ export default function RootLayout({
     </html>
   );
 }
+
