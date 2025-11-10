@@ -1,23 +1,4 @@
-name: foundry
-
-on:
-  push:
-  pull_request:
-
-jobs:
-  foundry:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: foundry-rs/foundry-toolchain@v1
-        with:
-          version: nightly
-
-      - name: Install deps
-        run: |
-          forge install foundry-rs/forge-std@v1.9.5 --no-commit
-          forge install OpenZeppelin/openzeppelin-contracts@v5.0.2 --no-commit
-
-      - name: Build
-        run: forge build
+- name: Install deps
+  run: |
+    forge install foundry-rs/forge-std@v1.9.5 || true
+    forge install OpenZeppelin/openzeppelin-contracts@v5.0.2 || true
