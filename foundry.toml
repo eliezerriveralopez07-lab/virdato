@@ -1,20 +1,11 @@
 [profile.default]
-# If your solidity sources live in /contracts (as your repo suggests), keep this:
 src = "contracts"
-# If you actually keep them in /src, change to: src = "src"
-
-script = "script"
-test = "test"
 out = "out"
 libs = ["lib"]
-
 remappings = [
   "forge-std/=lib/forge-std/src/",
   "openzeppelin-contracts/=lib/openzeppelin-contracts/"
 ]
-
-# Lock the compiler to what you're using in CI (adjust if needed)
-solc_version = "0.8.30"
 
 [rpc_endpoints]
 amoy = "${RPC_URL}"
