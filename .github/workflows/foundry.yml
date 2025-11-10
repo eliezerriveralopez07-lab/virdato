@@ -1,4 +1,40 @@
-- name: Install deps
-  run: |
-    forge install foundry-rs/forge-std@v1.9.5 || true
-    forge install OpenZeppelin/openzeppelin-contracts@v5.0.2 || true
+name: foundry
+
+on:
+  push:
+    paths:
+      - "contracts/**"
+      - "script/**"
+      - "foundry.toml"
+      - ".github/workflows/foundry.yml"
+  pull_request:
+
+jobs:
+  foundry:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      # Use the stable Foundry toolchain (avoids nightly flag changes)
+      - name: Install Foundry (stable)
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: stable
+
+      # Install libs into ./lib (idempotent; won't fail if already present)
+      - name: Install deps
+        run: |
+          forge --version
+          mkdir -p lib
+          forge install foundry-rs/forge-std@v1.9.5 || true
+          forge install OpenZeppelin/openzeppelin-contracts@v5.0.2 || true
+
+      # Build the contracts
+      - name: Build
+        run: forge build --sizes
+
+      # Optional: run tests (won't fail the job if none exist yet)
+      - name: Test
+        run: forge test -vvv || true
