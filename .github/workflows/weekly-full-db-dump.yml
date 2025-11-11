@@ -1,48 +1,35 @@
-name: weekly-full-db-dump
+- name: Full dump via Docker (Postgres 17)
+  env:
+    # required repository secrets
+    PGPASSWORD: ${{ secrets.DB_PASSWORD_SUPER }}
+    DB_HOST:     ${{ secrets.DB_HOST }}
+    DB_NAME:     ${{ secrets.DB_NAME }}
+    DB_USER:     ${{ secrets.DB_USER }}
+    DB_PORT:     ${{ secrets.DB_PORT || '5432' }}
+    # optional secret; if not set we’ll default to 'require'
+    DB_SSLMODE:  ${{ secrets.DB_SSLMODE }}
+  run: |
+    set -euo pipefail
 
-on:
-  schedule:
-    - cron: "0 3 * * 1"     # Mondays 03:00 UTC
-  workflow_dispatch:
+    # Default SSL mode if not provided by secrets
+    SSLMODE="${DB_SSLMODE:-require}"
 
-jobs:
-  full-dump:
-    runs-on: ubuntu-latest
+    echo "▶ Using Host=$DB_HOST Port=$DB_PORT DB=$DB_NAME User=$DB_USER SSL=$SSLMODE"
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+    # 1) Quick auth probe (tests user/password + network)
+    docker run --rm -e PGPASSWORD="$PGPASSWORD" postgres:17-alpine \
+      psql "host=$DB_HOST port=$DB_PORT user=$DB_USER dbname=$DB_NAME sslmode=$SSLMODE" \
+      -c "select current_user, now();"
 
-      - name: Full dump via Docker (Postgres 17)
-        env:
-          # required secrets (Repository secrets)
-          PGPASSWORD: ${{ secrets.DB_PASSWORD_SUPER }}
-          DB_HOST:     ${{ secrets.DB_HOST }}
-          DB_NAME:     ${{ secrets.DB_NAME }}
-          DB_USER:     ${{ secrets.DB_USER }}
-          DB_PORT:     ${{ secrets.DB_PORT || '5432' }}
-          # optional: set to 'require' for Supabase/Neon/Azure, 'prefer' for RDS
-          DB_SSLMODE:  ${{ secrets.DB_SSLMODE || 'require' }}
-        run: |
-          set -euo pipefail
+    # 2) Build a URI and pass it into the container as an env var
+    DB_URI="postgresql://${DB_USER}:${PGPASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}?sslmode=${SSLMODE}"
 
-          # 0) Guardrails – fail fast if anything is missing
-          [ -n "$PGPASSWORD" ] || { echo "❌ DB_PASSWORD_SUPER not set"; exit 1; }
-          [ -n "$DB_HOST" ]     || { echo "❌ DB_HOST not set"; exit 1; }
-          [ -n "$DB_NAME" ]     || { echo "❌ DB_NAME not set"; exit 1; }
-          [ -n "$DB_USER" ]     || { echo "❌ DB_USER not set"; exit 1; }
+    docker run --rm \
+      -e PGPASSWORD="$PGPASSWORD" \
+      -e DB_URI="$DB_URI" \
+      postgres:17-alpine \
+      sh -c 'pg_dump --dbname="$DB_URI" -F c -v' \
+      > dump_$(date -u +%Y%m%d).sqlc
 
-          echo "▶ Using Host=$DB_HOST Port=$DB_PORT DB=$DB_NAME User=$DB_USER SSL=$DB_SSLMODE"
+    ls -lh dump_*.sqlc
 
-          # 1) Quick auth probe (uses public Docker Hub image)
-          docker run --rm -e PGPASSWORD="$PGPASSWORD" postgres:17-alpine \
-            psql "host=$DB_HOST port=$DB_PORT user=$DB_USER dbname=$DB_NAME sslmode=$DB_SSLMODE" \
-            -c "select current_user, now();" || {
-              echo "❌ Authentication failed. Check DB_USER format and DB_PASSWORD_SUPER value."; exit 1; }
-
-          # 2) Full dump (URI form; safer with SSL)
-          docker run --rm -e PGPASSWORD="$PGPASSWORD" postgres:17-alpine \
-            sh -c 'pg_dump --dbname="postgresql://$DB_USER:$PGPASSWORD@$DB_HOST:$DB_PORT/$DB_NAME?sslmode=$DB_SSLMODE" -F c -v' \
-            > dump_$(date -u +%Y%m%d).sqlc
-
-          ls -lh dump_*.sqlc
