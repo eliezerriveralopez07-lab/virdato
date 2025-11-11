@@ -1,24 +1,37 @@
-- name: Full dump via Docker (Postgres 17)
-  env:
-    PGPASSWORD: ${{ secrets.DB_PASSWORD_SUPER }}
-    DB_HOST:     ${{ secrets.DB_HOST }}
-    DB_NAME:     ${{ secrets.DB_NAME }}
-    DB_USER:     ${{ secrets.DB_USER }}
-    DB_PORT:     ${{ secrets.DB_PORT || '5432' }}
-  run: |
-    set -euo pipefail
-    # Show which host/port/user/db we're using (password is NOT printed)
-    echo "Host=$DB_HOST Port=$DB_PORT DB=$DB_NAME User=$DB_USER"
+name: weekly-full-db-dump
 
-    # 1) Quick auth probe (fails fast if username/password don’t match)
-    docker run --rm -e PGPASSWORD=$PGPASSWORD ghcr.io/epiclabs-io/postgres:17 \
-      psql "host=$DB_HOST port=$DB_PORT user=$DB_USER dbname=$DB_NAME sslmode=require" \
-      -c "select current_user, now();" || {
-        echo "❌ Auth failed. Check DB_USER format and DB_PASSWORD_SUPER value."; exit 1; }
+on:
+  schedule:
+    - cron: "0 3 * * 1"   # Mondays 03:00 UTC
+  workflow_dispatch:
 
-    # 2) Full dump (URI form; sslmode=require is safe for most providers)
-    docker run --rm -e PGPASSWORD=$PGPASSWORD ghcr.io/epiclabs-io/postgres:17 \
-      pg_dump --dbname="postgresql://$DB_USER:$PGPASSWORD@$DB_HOST:$DB_PORT/$DB_NAME?sslmode=require" \
-      -F c -v > dump_$(date -u +%Y%m%d).sqlc
+jobs:
+  full-dump:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-    ls -lh dump_*.sqlc
+      - name: Full dump via Docker (Postgres 17)
+        env:
+          PGPASSWORD: ${{ secrets.DB_PASSWORD_SUPER }}
+          DB_HOST:     ${{ secrets.DB_HOST }}
+          DB_NAME:     ${{ secrets.DB_NAME }}
+          DB_USER:     ${{ secrets.DB_USER }}
+          DB_PORT:     ${{ secrets.DB_PORT || '5432' }}
+        run: |
+          set -euo pipefail
+          echo "Host=$DB_HOST Port=$DB_PORT DB=$DB_NAME User=$DB_USER"
+
+          # 1) Quick auth probe (fails fast if the user/password is wrong)
+          docker run --rm -e PGPASSWORD=$PGPASSWORD ghcr.io/epiclabs-io/postgres:17 \
+            psql "host=$DB_HOST port=$DB_PORT user=$DB_USER dbname=$DB_NAME sslmode=require" \
+            -c "select current_user, now();" || {
+              echo "❌ Auth failed. Check DB_USER format and DB_PASSWORD_SUPER value."; exit 1; }
+
+          # 2) Full dump (URI form; sslmode=require is safe for most providers)
+          docker run --rm -e PGPASSWORD=$PGPASSWORD ghcr.io/epiclabs-io/postgres:17 \
+            pg_dump --dbname="postgresql://$DB_USER:$PGPASSWORD@$DB_HOST:$DB_PORT/$DB_NAME?sslmode=require" \
+            -F c -v > dump_$(date -u +%Y%m%d).sqlc
+
+          ls -lh dump_*.sqlc
