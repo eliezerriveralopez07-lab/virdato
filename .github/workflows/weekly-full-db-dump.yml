@@ -21,23 +21,22 @@ jobs:
           DB_PORT: ${{ secrets.DB_PORT || '5432' }}
           DB_SSLMODE: ${{ secrets.DB_SSLMODE || 'require' }}
         run: |
-          set -euo pipefail
+          run: |
+  set -euo pipefail
 
-          echo "▶ Using Host=$DB_HOST Port=$DB_PORT DB=$DB_NAME User=$DB_USER SSL=$DB_SSLMODE"
+  SSLMODE="${DB_SSLMODE:-require}"
+  echo "▶ Using Host=$DB_HOST Port=$DB_PORT User=$DB_USER SSL=$SSLMODE"
+  echo "▶ Probing connection…"
 
-          # 1) Quick auth probe
-          docker run --rm -e PGPASSWORD="$PGPASSWORD" postgres:17-alpine \
-            psql "host=$DB_HOST port=$DB_PORT user=$DB_USER dbname=$DB_NAME sslmode=$DB_SSLMODE" \
-            -c "select current_user, now();"
+  docker run --rm -e PGPASSWORD="$PGPASSWORD" postgres:17-alpine \
+    psql "host=$DB_HOST port=$DB_PORT user=$DB_USER dbname=postgres sslmode=$SSLMODE" \
+    -c "select current_user as user, now() as ts;"
 
-          # 2) Perform full dump
-          DB_URI="postgresql://${DB_USER}:${PGPASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}?sslmode=${DB_SSLMODE}"
+  echo "▶ Listing non-template databases:"
+  docker run --rm -e PGPASSWORD="$PGPASSWORD" postgres:17-alpine \
+    psql "host=$DB_HOST port=$DB_PORT user=$DB_USER dbname=postgres sslmode=$SSLMODE" \
+    -tAc "select datname from pg_database where datistemplate = false order by 1;"
 
-          docker run --rm \
-            -e PGPASSWORD="$PGPASSWORD" \
-            -e DB_URI="$DB_URI" \
-            postgres:17-alpine \
-            sh -c 'pg_dump --dbname="$DB_URI" -F c -v' \
-            > dump_$(date -u +%Y%m%d).sqlc
+  echo "❗ Update your repository secret DB_NAME to one of the names listed above, then re-run."
+  exit 1
 
-          ls -lh dump_*.sqlc
