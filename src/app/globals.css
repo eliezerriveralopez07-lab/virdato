@@ -1,2 +1,4 @@
-// src/app/layout.tsx
-import "./globals.css";
+/* src/app/globals.css */
+:root { color-scheme: light dark; }
+html, body { margin: 0; padding: 0; }
+body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Inter, sans-serif; }
