@@ -1,4 +1,3 @@
-cat > script/DeployVIRD.s.sol << 'EOF'
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
@@ -14,4 +13,3 @@ contract DeployVIRD is Script {
         console2.log("VIRD deployed at:", address(token));
     }
 }
-EOF
