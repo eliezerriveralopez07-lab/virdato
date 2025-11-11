@@ -1,4 +1,3 @@
-cat > contracts/VIRD.sol << 'EOF'
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
@@ -11,5 +10,4 @@ contract VIRD is ERC20, Ownable {
     }
     function mint(address to, uint256 amount) external onlyOwner { _mint(to, amount); }
 }
-EOF
 
