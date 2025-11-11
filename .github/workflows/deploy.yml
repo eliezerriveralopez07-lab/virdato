@@ -2,48 +2,37 @@ name: deploy
 
 on:
   push:
-    branches:
-      - web/add-virdato-web         # change to 'main' after you merge the web app
+    branches: [ main ]                 # build main since app is at repo root
     paths:
-      - 'virdato-web/**'
+      - 'src/**'
+      - 'public/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'next.config.*'
+      - 'postcss.config.*'
+      - 'tsconfig.json'
       - '.github/workflows/deploy.yml'
-  workflow_dispatch:
-    inputs:
-      ref:
-        description: 'Git ref (branch or tag) to build'
-        required: true
-        default: 'web/add-virdato-web'
+  workflow_dispatch: {}
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: virdato-web
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          # when manually triggered, use the selected ref
-          ref: ${{ github.event.inputs.ref || github.ref }}
-
-      - name: Sanity check folder
-        run: |
-          echo "Building ref: $GITHUB_REF"
-          ls -la || true
-          if [ ! -d "virdato-web" ]; then
-            echo "❌ 'virdato-web' folder not found in this branch. Switch to the branch that contains it (e.g. web/add-virdato-web) or merge it into main."
-            exit 1
-          fi
-          ls -la virdato-web
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          # no caching to keep it simple; add cache later if you want
-          cache: 'none'
+            node-version: '20'
+            cache: 'none'              # keep simple; add caching later if you want
+
+      - name: Show files (sanity)
+        run: |
+          pwd
+          ls -la
+          test -f package.json || (echo "No package.json in repo root" && exit 1)
 
       - name: Install dependencies
         run: npm install
