@@ -3,11 +3,16 @@ name: deploy
 on:
   push:
     branches:
-      - web/add-virdato-web         # or 'main' if you build from main
+      - web/add-virdato-web         # change to 'main' after you merge the web app
     paths:
       - 'virdato-web/**'
       - '.github/workflows/deploy.yml'
   workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Git ref (branch or tag) to build'
+        required: true
+        default: 'web/add-virdato-web'
 
 jobs:
   build:
@@ -19,11 +24,26 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          # when manually triggered, use the selected ref
+          ref: ${{ github.event.inputs.ref || github.ref }}
 
-      - name: Setup Node.js (no cache)
+      - name: Sanity check folder
+        run: |
+          echo "Building ref: $GITHUB_REF"
+          ls -la || true
+          if [ ! -d "virdato-web" ]; then
+            echo "❌ 'virdato-web' folder not found in this branch. Switch to the branch that contains it (e.g. web/add-virdato-web) or merge it into main."
+            exit 1
+          fi
+          ls -la virdato-web
+
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          # no caching to keep it simple; add cache later if you want
+          cache: 'none'
 
       - name: Install dependencies
         run: npm install
