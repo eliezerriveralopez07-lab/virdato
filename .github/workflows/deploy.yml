@@ -1,21 +1,22 @@
-name: Deploy to Vercel (Prod)
-
+name: foundry
 on:
   push:
-    branches: [main]
-  workflow_dispatch:
-
+    paths: ["contracts/**","script/**","foundry.toml",".github/workflows/foundry.yml"]
+  pull_request:
 jobs:
-  deploy:
+  foundry:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-      - run: npm ci
+      - uses: foundry-rs/foundry-toolchain@v1
+        with: { version: stable }
+      - name: Install deps
+        run: |
+          mkdir -p lib
+          forge install foundry-rs/forge-std@v1.9.5 || true
+          forge install OpenZeppelin/openzeppelin-contracts@v5.0.2 || true
+      - name: Build
+        run: forge build --sizes
+      - name: Test (optional)
+        run: forge test -vvv || true
 
-      # Remote build on Vercel; uses envs you already set in Vercel
-      - name: Deploy (remote build)
-        run: npx vercel --prod --yes --token ${{ secrets.VERCEL_TOKEN }}
