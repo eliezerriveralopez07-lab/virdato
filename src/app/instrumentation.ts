@@ -1,5 +1,5 @@
 // src/app/instrumentation.ts
-// Unified Sentry init for server (and edge) without using "@sentry/nextjs/edge".
+// Unified Sentry init without using "@sentry/nextjs/edge".
 
 export async function register() {
   const dsn = process.env.SENTRY_DSN || process.env.NEXT_PUBLIC_SENTRY_DSN;
@@ -8,7 +8,7 @@ export async function register() {
   Sentry.init({
     dsn,
     enabled: Boolean(dsn),
-    tracesSampleRate: 1.0, // TODO: tune for production
+    tracesSampleRate: 1.0, // tune for production
     // telemetry: false,    // uncomment to silence SDK telemetry warnings
   });
 }
