@@ -1,14 +1,39 @@
+# foundry.toml
+
 [profile.default]
-src = "contracts"
-out = "out"
+# Your project layout
+src  = "contracts"
+test = "test"
+out  = "out"
 libs = ["lib"]
+
+# Compiler settings
+auto_detect_solc = true
+optimizer        = true
+optimizer_runs   = 1000
+evm_version      = "cancun"
+
+# Useful remappings
 remappings = [
   "forge-std/=lib/forge-std/src/",
   "openzeppelin-contracts/=lib/openzeppelin-contracts/"
 ]
 
+# RPC endpoints (uses env var; set RPC_URL in your shell/CI)
 [rpc_endpoints]
 amoy = "${RPC_URL}"
 
+# Etherscan/Polygonscan API key (set POLYGONSCAN_API_KEY in env/CI)
 [etherscan]
-amoy = { key = "${POLYGONSCAN_API_KEY}" }
+amoy = { key = "${POLYGONSCAN_API_KEY}" } # Amoy (Polygon testnet)
+
+# Nice-to-have formatting defaults
+[fmt]
+line_length     = 100
+tab_width       = 4
+bracket_spacing = true
+int_types       = "short"
+
+# CI-specific tweaks (more verbose logs on failures)
+[profile.ci]
+verbosity = 4
