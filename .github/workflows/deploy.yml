@@ -17,6 +17,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout repository
@@ -25,7 +27,9 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'           # remove cache: none (not supported)
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: package-lock.json
 
       - name: Show files (sanity)
         run: |
@@ -33,9 +37,36 @@ jobs:
           ls -la
           test -f package.json || (echo "No package.json in repo root" && exit 1)
 
-      # Use npm ci for reproducible installs in CI (requires package-lock.json)
+      # Fail early with a clear message if required secrets are missing
+      - name: Preflight env check
+        shell: bash
+        run: |
+          [ -n "$NEXT_PUBLIC_MAGIC_PUBLISHABLE_KEY" ] || { echo "❌ Missing NEXT_PUBLIC_MAGIC_PUBLISHABLE_KEY GitHub secret"; exit 1; }
+          [ -n "$MAGIC_SECRET_KEY" ] || { echo "❌ Missing MAGIC_SECRET_KEY GitHub secret"; exit 1; }
+          # Optional (only if your code uses them). Comment out if not needed:
+          [ -n "$NEXT_PUBLIC_RPC_URL" ] || echo "⚠ NEXT_PUBLIC_RPC_URL not set (skip if your build doesn't use it)"
+          [ -n "$UPSTASH_REDIS_REST_URL" ] || echo "⚠ UPSTASH_REDIS_REST_URL not set (skip if unused)"
+          [ -n "$UPSTASH_REDIS_REST_TOKEN" ] || echo "⚠ UPSTASH_REDIS_REST_TOKEN not set (skip if unused)"
+        env:
+          NEXT_PUBLIC_MAGIC_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_MAGIC_PUBLISHABLE_KEY }}
+          MAGIC_SECRET_KEY: ${{ secrets.MAGIC_SECRET_KEY }}
+          NEXT_PUBLIC_RPC_URL: ${{ secrets.NEXT_PUBLIC_RPC_URL }}
+          UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL }}
+          UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
+
+      # Reproducible installs; requires a valid, committed package-lock.json
       - name: Install dependencies
         run: npm ci
 
       - name: Build app
         run: npm run build
+        env:
+          # Required for Magic SDK (client + server)
+          NEXT_PUBLIC_MAGIC_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_MAGIC_PUBLISHABLE_KEY }}
+          MAGIC_SECRET_KEY: ${{ secrets.MAGIC_SECRET_KEY }}
+
+          # Optional – include only if your code reads them during build/runtime
+          NEXT_PUBLIC_RPC_URL: ${{ secrets.NEXT_PUBLIC_RPC_URL }}
+          UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL }}
+          UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
+          CI: true
