@@ -1,26 +1,42 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import { magic } from "@/lib/magicClient";
-import { getVirdContract } from "@/lib/vird";
+import { useEffect, useState } from 'react';
+import { getMagic } from '@/lib/magicClient';
+import { getVirdContract } from '@/lib/vird';
 
 export default function Home() {
-  const [email, setEmail] = useState("");
-  const [address, setAddress] = useState("");
-  const [balance, setBalance] = useState("");
+  const [email, setEmail] = useState('');
+  const [address, setAddress] = useState('');
+  const [balance, setBalance] = useState('');
 
   async function signIn() {
+    const magic = getMagic();
+    if (!magic) {
+      alert('Magic is not available (missing NEXT_PUBLIC_MAGIC_PUBLISHABLE_KEY or not in browser).');
+      return;
+    }
     await magic.auth.loginWithEmailOTP({ email });
-    const accounts = await (magic.rpcProvider as any).request({ method: "eth_requestAccounts" });
+    // Magic injects an EIP-1193 provider
+    const accounts = await (magic.rpcProvider as any).request({
+      method: 'eth_requestAccounts',
+    });
     setAddress(accounts[0]);
   }
 
   useEffect(() => {
-    if (!address) { setBalance(""); return; }
+    if (!address) {
+      setBalance('');
+      return;
+    }
     (async () => {
-      const vird = getVirdContract();
-      const bal = await vird.balanceOf(address);
-      setBalance((Number(bal) / 1e18).toFixed(4));
+      try {
+        const vird = getVirdContract(); // read-only provider
+        const bal = await vird.balanceOf(address);
+        setBalance((Number(bal) / 1e18).toFixed(4));
+      } catch (e) {
+        console.error(e);
+        setBalance('error');
+      }
     })();
   }, [address]);
 
@@ -36,12 +52,14 @@ export default function Home() {
             onChange={(e) => setEmail(e.target.value)}
             style={{ padding: 8, width: 320, marginRight: 8 }}
           />
-          <button onClick={signIn} style={{ padding: "8px 12px" }}>Sign in with Magic</button>
+          <button onClick={signIn} style={{ padding: '8px 12px' }}>
+            Sign in with Magic
+          </button>
         </div>
       ) : (
         <div style={{ marginTop: 12 }}>
           <div>Address: {address}</div>
-          <div>Balance: {balance || "…"} VIRD</div>
+          <div>Balance: {balance || '…'} VIRD</div>
         </div>
       )}
     </main>
