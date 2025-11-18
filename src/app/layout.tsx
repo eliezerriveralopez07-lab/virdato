@@ -1,13 +1,10 @@
-// src/app/layout.tsx
-import type { Metadata } from "next";
-import "./globals.css";
-import { Inter } from "next/font/google";
-
-const inter = Inter({ subsets: ["latin"] });
+import type { Metadata } from 'next';
+import './globals.css';
+import { AppProviders } from './providers';
 
 export const metadata: Metadata = {
-  title: "VIRD",
-  description: "VIRD app",
+  title: 'Virdato Wallet Dashboard',
+  description: 'Monitor and manage your VirdToken holdings.',
 };
 
 export default function RootLayout({
@@ -17,9 +14,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>{children}</body>
+      <body>
+        <AppProviders>{children}</AppProviders>
+      </body>
     </html>
   );
 }
-
 
