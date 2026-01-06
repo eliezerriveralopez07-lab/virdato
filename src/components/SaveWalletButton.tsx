@@ -1,44 +1,49 @@
 "use client";
 
-import { useState } from "react";
-import { useAccount } from "wagmi";
-import { getMagic } from "@/lib/magicClient";
+import { useMemo, useState } from "react";
+import { useAccount, useSignMessage } from "wagmi";
 
 export default function SaveWalletButton() {
-  const { address, isConnected } = useAccount();
+  const { address, isConnected, chain } = useAccount();
+  const { signMessageAsync } = useSignMessage();
   const [status, setStatus] = useState<string>("");
 
-  const saveWallet = async () => {
-    try {
-      setStatus("Saving...");
+  const message = useMemo(() => {
+    const issuedAt = Math.floor(Date.now() / 1000);
+    return `Link wallet to Virdato rewards
+wallet:${address ?? ""}
+chainId:${chain?.id ?? ""}
+issuedAt:${issuedAt}`;
+  }, [address, chain?.id]);
 
-      const magic = getMagic();
-      if (!magic) {
-        setStatus("Magic not initialized");
+  const saveWallet = async () => {
+    // This line proves the click handler is running
+    setStatus("Clicked ✅ opening signature…");
+
+    try {
+      if (!address) {
+        setStatus("No wallet address detected.");
         return;
       }
 
-      // Magic DID token
-      const didToken = await magic.user.getIdToken();
+      const signature = await signMessageAsync({ message });
 
+      setStatus("Signed ✅ saving…");
       const res = await fetch("/api/creator/wallet", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${didToken}`,
-        },
-        body: JSON.stringify({ walletAddress: address }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ walletAddress: address, message, signature }),
       });
 
       const json = await res.json();
       if (!res.ok) {
-        setStatus(`Error: ${json.error || "failed"}`);
+        setStatus(`Server error: ${json.error || "failed"}`);
         return;
       }
 
       setStatus("Wallet saved ✅");
-    } catch {
-      setStatus("Error: request failed");
+    } catch (e: any) {
+      setStatus(`Client error: ${e?.message || "failed"}`);
     }
   };
 
