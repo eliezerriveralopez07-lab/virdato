@@ -1,0 +1,18 @@
+name: Daily Virdato Pipeline
+
+on:
+  schedule:
+    - cron: "0 1 * * *"   # daily at 01:00 UTC
+  workflow_dispatch:
+
+jobs:
+  run-pipeline:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call daily pipeline
+        run: |
+          curl -X POST https://qhixhmarbjkvjbsqpguz.supabase.co/functions/v1/daily-pipeline \
+            -H "Authorization: Bearer ${{ secrets.VIRDATO_ANON_KEY }}" \
+            -H "apikey: ${{ secrets.VIRDATO_ANON_KEY }}" \
+            -H "Content-Type: application/json" \
+            --data "{}"
