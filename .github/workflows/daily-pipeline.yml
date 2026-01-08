@@ -2,7 +2,7 @@ name: Daily Virdato Pipeline
 
 on:
   schedule:
-    - cron: "0 1 * * *"   # daily at 01:00 UTC
+    - cron: "0 1 * * *"
   workflow_dispatch:
 
 jobs:
@@ -20,3 +20,4 @@ jobs:
         env:
           VIRDATO_ANON_KEY: ${{ secrets.VIRDATO_ANON_KEY }}
           PIPELINE_SECRET: ${{ secrets.PIPELINE_SECRET }}
+
