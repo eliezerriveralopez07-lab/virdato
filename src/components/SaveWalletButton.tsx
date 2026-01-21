@@ -17,7 +17,6 @@ issuedAt:${issuedAt}`;
   }, [address, chain?.id]);
 
   const saveWallet = async () => {
-    // This line proves the click handler is running
     setStatus("Clicked ✅ opening signature…");
 
     try {
@@ -32,7 +31,11 @@ issuedAt:${issuedAt}`;
       const res = await fetch("/api/creator/wallet", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ walletAddress: address, message, signature }),
+        body: JSON.stringify({
+          walletAddress: address,
+          message,
+          signature,
+        }),
       });
 
       const json = await res.json();
@@ -52,9 +55,16 @@ issuedAt:${issuedAt}`;
   return (
     <div style={{ marginTop: 12 }}>
       <div>Connected wallet: {address}</div>
-      <button onClick={saveWallet} style={{ marginTop: 8 }}>
+
+      {/* ✅ CRITICAL FIX: type="button" prevents page refresh */}
+      <button
+        type="button"
+        onClick={saveWallet}
+        style={{ marginTop: 8 }}
+      >
         Save wallet for rewards
       </button>
+
       <div style={{ marginTop: 8 }}>{status}</div>
     </div>
   );

@@ -1,22 +1,26 @@
-'use client';
+// src/components/HomeClient.tsx
+'use client'
 
-import { useEffect, useState } from 'react';
-import { getMagic } from '@/lib/magicClient';
+import React from 'react'
+import dynamic from 'next/dynamic'
+
+// ✅ Prevent SSR/build from bundling wallet deps
+const SaveWalletButton = dynamic(() => import('@/components/SaveWalletButton'), {
+  ssr: false,
+  loading: () => null,
+})
 
 export default function HomeClient() {
-  const [ok, setOk] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
+  return (
+    <main style={{ padding: 24, maxWidth: 980, margin: '0 auto' }}>
+      <h1 style={{ fontSize: 34, fontWeight: 900, margin: 0 }}>Virdato Wallet Dashboard</h1>
+      <p style={{ marginTop: 10, color: '#666' }}>
+        Connect your wallet to view balances and optionally save it for rewards.
+      </p>
 
-  useEffect(() => {
-    try {
-      const m = getMagic();
-      if (!m) throw new Error('Magic not initialized (server render or missing key)');
-      setOk(true);
-    } catch (e: any) {
-      setErr(e?.message ?? 'Magic init failed');
-    }
-  }, []);
-
-  if (err) return <pre>{err}</pre>;
-  return <div>{ok ? 'Magic ready' : 'Initializing…'}</div>;
+      <div style={{ marginTop: 14 }}>
+        <SaveWalletButton />
+      </div>
+    </main>
+  )
 }
