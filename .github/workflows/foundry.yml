@@ -8,21 +8,25 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout (with submodules)
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
+      - uses: actions/checkout@v4
 
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
         with:
           version: stable
 
+      - name: Install dependencies (forge-std + OZ)
+        run: |
+          forge install foundry-rs/forge-std --no-commit
+          forge install OpenZeppelin/openzeppelin-contracts --no-commit
+
       - name: Show repo layout (debug)
         run: |
           ls -la
           ls -la lib || true
           ls -la contracts || true
+          ls -la contracts/src || true
+          ls -la test || true
 
       - name: Run tests
         run: forge test -vv
