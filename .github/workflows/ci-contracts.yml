@@ -7,29 +7,20 @@ on:
 jobs:
   foundry:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
         with:
           version: stable
 
-      - name: Install Foundry dependencies
+      - name: Clean and install deps
         run: |
           rm -rf lib
           forge install foundry-rs/forge-std
           forge install OpenZeppelin/openzeppelin-contracts
           rm -rf lib/**/.git
-
-      - name: Show repo layout (debug)
-        run: |
-          pwd
-          ls -la
-          ls -la lib
-          ls -la contracts/src
 
       - name: Run tests
         run: forge test -vv
