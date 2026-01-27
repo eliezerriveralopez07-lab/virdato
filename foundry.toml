@@ -2,7 +2,7 @@
 
 [profile.default]
 # Your project layout
-src  = "contracts"
+src  = "contracts/src"
 test = "test"
 out  = "out"
 libs = ["lib"]
