@@ -1,15 +1,35 @@
 name: contracts-ci
-on: [push, pull_request]
+
+on:
+  push:
+  pull_request:
+
 jobs:
   foundry:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: foundry-rs/foundry-toolchain@v1
-        with: { version: nightly }
-      - name: Install deps (Foundry)
-        working-directory: contracts
-        run: forge install OpenZeppelin/openzeppelin-contracts@v5.0.2
-      - name: Build
-        working-directory: contracts
-        run: forge build --sizes
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: stable
+
+      - name: Install Foundry dependencies
+        run: |
+          rm -rf lib
+          forge install foundry-rs/forge-std
+          forge install OpenZeppelin/openzeppelin-contracts
+          rm -rf lib/**/.git
+
+      - name: Show repo layout (debug)
+        run: |
+          pwd
+          ls -la
+          ls -la lib
+          ls -la contracts/src
+
+      - name: Run tests
+        run: forge test -vv
