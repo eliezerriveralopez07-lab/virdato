@@ -84,3 +84,14 @@ If asked “do you have a utility token + rewards infrastructure?”, provide:
 - Governance upgrade (multisig / timelock)
 - Mainnet deployment checklist and dry-run deployments
 - Off-chain scoring pipeline → Merkle root generation automation
+
+- ## Bond Requirement for Rewards
+
+To be eligible for VIRD rewards, a participant **must have an active bond** in the SlashingModule.
+
+- If `bonded(address) == 0`, the participant is **not eligible** for rewards.
+- Bonding is required before participating in reward-bearing activities.
+- This rule is enforced off-chain during reward computation and verifiable on-chain.
+
+This requirement applies to all contributors, including future integrations with social media or external data sources.
+
