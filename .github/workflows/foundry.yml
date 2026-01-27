@@ -15,13 +15,23 @@ jobs:
         with:
           version: stable
 
-      - name: Install dependencies (forge-std + OZ)
+      - name: Clean and install deps
         run: |
           rm -rf lib
           forge install foundry-rs/forge-std
           forge install OpenZeppelin/openzeppelin-contracts
-          # prevent any submodule/commit expectations
           rm -rf lib/**/.git
+
+      - name: Print Foundry config + layout
+        run: |
+          pwd
+          ls -la
+          cat foundry.toml
+          ls -la lib || true
+          ls -la lib/forge-std/src || true
+          ls -la contracts/src || true
+          ls -la test || true
 
       - name: Run tests
         run: forge test -vv
+
