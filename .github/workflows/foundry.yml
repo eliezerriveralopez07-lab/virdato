@@ -1,37 +1,17 @@
-name: foundry
+name: Foundry CI
 
 on:
   push:
-    paths:
-      - "contracts/**"
-      - "script/**"
-      - "foundry.toml"
-      - ".github/workflows/foundry.yml"
   pull_request:
 
 jobs:
-  foundry:
+  test:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
-
-      - name: Install Foundry (stable)
+      - uses: actions/checkout@v4
+      - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
         with:
           version: stable
-
-      - name: Install deps
-        run: |
-          mkdir -p lib
-          forge install foundry-rs/forge-std@v1.9.5 || true
-          forge install OpenZeppelin/openzeppelin-contracts@v5.0.2 || true
-          echo "--- lib tree ---"
-          ls -la lib/forge-std/src || true
-          ls -la lib/openzeppelin-contracts || true
-
-      - name: Build
-        run: forge build --sizes
-
-      - name: Test (optional)
-        run: forge test -vvv || true
+      - name: Run tests
+        run: forge test -vv
