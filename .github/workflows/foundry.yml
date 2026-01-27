@@ -8,12 +8,22 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout (with submodules)
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
         with:
           version: stable
 
+      - name: Show repo layout (debug)
+        run: |
+          ls -la
+          ls -la lib || true
+          ls -la contracts || true
+
       - name: Run tests
         run: forge test -vv
+
