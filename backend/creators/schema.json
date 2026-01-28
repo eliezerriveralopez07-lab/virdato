@@ -1,0 +1,11 @@
+{
+  "type": "object",
+  "properties": {
+    "wallet": { "type": "string" },
+    "platform": { "type": "string" },
+    "handle": { "type": "string" },
+    "timestamp": { "type": "number" },
+    "signature": { "type": "string" }
+  },
+  "required": ["wallet", "platform", "handle", "timestamp", "signature"]
+}
