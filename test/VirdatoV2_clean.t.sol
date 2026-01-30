@@ -7,11 +7,14 @@ import "../contracts/src/RewardDistributorDev.sol";
 import "../contracts/src/MerkleRewardsV2.sol";
 import "../contracts/src/SlashingModuleV2.sol";
 
-import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract MockToken is ERC20 {
-    constructor() ERC20("Mock", "MOCK") {}
-    function mint(address to, uint256 amt) external { _mint(to, amt); }
+    constructor() ERC20("Mock", "MOCK") { }
+
+    function mint(address to, uint amt) external {
+        _mint(to, amt);
+    }
 }
 
 contract VirdatoV2CleanTest is Test {

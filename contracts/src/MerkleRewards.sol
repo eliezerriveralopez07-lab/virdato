@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {MerkleProof} from "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { MerkleProof } from "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 interface IRewardDistributor {
-    function merkleRoots(uint256 epoch) external view returns (bytes32);
+    function merkleRoots(uint epoch) external view returns (bytes32);
 }
 
 contract MerkleRewards {
@@ -16,7 +16,7 @@ contract MerkleRewards {
     IRewardDistributor public immutable DISTRIBUTOR;
 
     /// @notice epoch => user => claimed
-    mapping(uint256 => mapping(address => bool)) public claimed;
+    mapping(uint => mapping(address => bool)) public claimed;
 
     constructor(address vdt, address distributor) {
         VDT = IERC20(vdt);
@@ -29,21 +29,14 @@ contract MerkleRewards {
      * @param amount Amount of VDT allocated to the caller
      * @param proof Merkle proof proving (caller, amount) is in the epoch root
      */
-    function claim(
-        uint256 epoch,
-        uint256 amount,
-        bytes32[] calldata proof
-    ) external {
+    function claim(uint epoch, uint amount, bytes32[] calldata proof) external {
         require(!claimed[epoch][msg.sender], "Already claimed");
 
         bytes32 root = DISTRIBUTOR.merkleRoots(epoch);
         require(root != bytes32(0), "Merkle root not set");
 
         bytes32 leaf = keccak256(abi.encode(msg.sender, amount));
-        require(
-            MerkleProof.verify(proof, root, leaf),
-            "Invalid Merkle proof"
-        );
+        require(MerkleProof.verify(proof, root, leaf), "Invalid Merkle proof");
 
         claimed[epoch][msg.sender] = true;
         require(VDT.transfer(msg.sender, amount), "Token transfer failed");

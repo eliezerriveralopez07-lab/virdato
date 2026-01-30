@@ -1,64 +1,53 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
+/// @notice Minimal distributor that stores merkle roots per epoch.
+///         DAO finalizes epochs (publishes roots). This contract is the "source of truth"
+///         for MerkleRewardsV2 verification.
 contract RewardDistributorDev {
     address public dao;
+    bool public frozen;
 
-    uint256 public constant EPOCH_LENGTH = 7 days;
-    uint256 public currentEpoch;
-    uint256 public epochStart;
+    uint public currentEpoch;
+    mapping(uint => bytes32) public merkleRoots;
 
-    mapping(uint256 => bytes32) public merkleRoots;
-    mapping(uint256 => uint256) public finalizedAt; // epoch => timestamp
-    mapping(uint256 => bool) public finalized;
-
-    event EpochFinalized(uint256 indexed epoch, bytes32 root, uint256 finalizedAt);
-    event DAOChanged(address indexed oldDao, address indexed newDao);
+    event EpochFinalized(uint indexed epoch, bytes32 root, uint timestamp);
+    event DaoUpdated(address indexed oldDao, address indexed newDao);
+    event Frozen(uint timestamp);
 
     modifier onlyDAO() {
         require(msg.sender == dao, "Not DAO");
         _;
     }
 
+    modifier notFrozen() {
+        require(!frozen, "Frozen");
+        _;
+    }
+
     constructor(address _dao) {
-        require(_dao != address(0), "Zero DAO");
+        require(_dao != address(0), "DAO=0");
         dao = _dao;
-        epochStart = block.timestamp;
     }
 
-    function finalizeEpoch(bytes32 root) external onlyDAO {
-        require(!finalized[currentEpoch], "Epoch finalized");
-        require(block.timestamp >= epochStart + EPOCH_LENGTH, "Epoch ongoing");
-        require(root != bytes32(0), "Zero root");
-
-        merkleRoots[currentEpoch] = root;
-        finalized[currentEpoch] = true;
-        finalizedAt[currentEpoch] = block.timestamp;
-
-        emit EpochFinalized(currentEpoch, root, block.timestamp);
-
-        currentEpoch++;
-        epochStart = block.timestamp;
-    }
-
-    // DEV ONLY (testnet)
+    /// @notice Publish merkle root for currentEpoch and then increment epoch.
     function forceFinalizeEpoch(bytes32 root) external onlyDAO {
-        require(!finalized[currentEpoch], "Epoch finalized");
-        require(root != bytes32(0), "Zero root");
-
+        // Root can be zero in dev, but for production you usually require non-zero.
         merkleRoots[currentEpoch] = root;
-        finalized[currentEpoch] = true;
-        finalizedAt[currentEpoch] = block.timestamp;
-
         emit EpochFinalized(currentEpoch, root, block.timestamp);
-
-        currentEpoch++;
-        epochStart = block.timestamp;
+        currentEpoch += 1;
     }
 
-    function setDAO(address newDao) external onlyDAO {
-        require(newDao != address(0), "Zero DAO");
-        emit DAOChanged(dao, newDao);
+    /// @notice Irreversible freeze (locks governance wiring).
+    function freeze() external onlyDAO notFrozen {
+        frozen = true;
+        emit Frozen(block.timestamp);
+    }
+
+    /// @notice Update DAO (disabled after freeze).
+    function setDAO(address newDao) external onlyDAO notFrozen {
+        require(newDao != address(0), "DAO=0");
+        emit DaoUpdated(dao, newDao);
         dao = newDao;
     }
 }

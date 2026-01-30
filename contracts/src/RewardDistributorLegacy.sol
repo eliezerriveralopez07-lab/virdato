@@ -4,12 +4,12 @@ pragma solidity ^0.8.20;
 contract RewardDistributor {
     address public dao;
 
-    uint256 public constant EPOCH_LENGTH = 7 days;
-    uint256 public currentEpoch;
-    uint256 public epochStart;
+    uint public constant EPOCH_LENGTH = 7 days;
+    uint public currentEpoch;
+    uint public epochStart;
 
-    mapping(uint256 => bytes32) public merkleRoots;
-    mapping(uint256 => bool) public finalized;
+    mapping(uint => bytes32) public merkleRoots;
+    mapping(uint => bool) public finalized;
 
     modifier onlyDAO() {
         require(msg.sender == dao, "Not DAO");

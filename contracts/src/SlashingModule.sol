@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract SlashingModule {
     /// @notice VIRD / VDT token used for bonding
@@ -11,7 +11,7 @@ contract SlashingModule {
     address public dao;
 
     /// @notice user => bonded amount
-    mapping(address => uint256) public bonded;
+    mapping(address => uint) public bonded;
 
     modifier onlyDAO() {
         require(msg.sender == dao, "Not DAO");
@@ -24,14 +24,14 @@ contract SlashingModule {
     }
 
     /// @notice User bonds tokens (must approve first)
-    function bond(uint256 amount) external {
+    function bond(uint amount) external {
         require(amount > 0, "Amount=0");
         bonded[msg.sender] += amount;
         require(VDT.transferFrom(msg.sender, address(this), amount), "Bond failed");
     }
 
     /// @notice DAO slashes a user’s bond
-    function slash(address user, uint256 amount) external onlyDAO {
+    function slash(address user, uint amount) external onlyDAO {
         require(amount > 0, "Amount=0");
         require(bonded[user] >= amount, "Insufficient bond");
         bonded[user] -= amount;

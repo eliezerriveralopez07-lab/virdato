@@ -7,11 +7,14 @@ import "../contracts/src/RewardDistributorDev.sol";
 import "../contracts/src/MerkleRewardsV2.sol";
 import "../contracts/src/SlashingModuleV2.sol";
 
-import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract MockToken is ERC20 {
-    constructor() ERC20("Mock", "MOCK") {}
-    function mint(address to, uint256 amt) external { _mint(to, amt); }
+    constructor() ERC20("Mock", "MOCK") { }
+
+    function mint(address to, uint amt) external {
+        _mint(to, amt);
+    }
 }
 
 contract Phase5RewardsAndSlashingTest is Test {
@@ -35,7 +38,7 @@ contract Phase5RewardsAndSlashingTest is Test {
     }
 
     function _emptyProof() internal pure returns (bytes32[] memory arr) {
-        // returns 
+        // returns
         assembly {
             arr := mload(0x40)
             mstore(arr, 0)
@@ -44,7 +47,7 @@ contract Phase5RewardsAndSlashingTest is Test {
     }
 
     // finalize a 1-leaf epoch root for alice using distributor.currentEpoch()
-    function _finalizeOneLeafForAlice(uint256 amount) internal returns (uint256 epoch, bytes32 root) {
+    function _finalizeOneLeafForAlice(uint amount) internal returns (uint epoch, bytes32 root) {
         epoch = distributor.currentEpoch();
         root = keccak256(abi.encode(epoch, alice, amount));
 
@@ -60,8 +63,8 @@ contract Phase5RewardsAndSlashingTest is Test {
     // ----------------------------
 
     function testHappyPathClaim_OneLeaf() public {
-        uint256 amount = 100 ether;
-        (uint256 epoch, ) = _finalizeOneLeafForAlice(amount);
+        uint amount = 100 ether;
+        (uint epoch,) = _finalizeOneLeafForAlice(amount);
 
         vm.prank(alice);
         rewards.claim(epoch, amount, _emptyProof());
@@ -70,8 +73,8 @@ contract Phase5RewardsAndSlashingTest is Test {
     }
 
     function testInvalidProofFails_WhenAmountDiffers() public {
-        uint256 amount = 100 ether;
-        (uint256 epoch, ) = _finalizeOneLeafForAlice(amount);
+        uint amount = 100 ether;
+        (uint epoch,) = _finalizeOneLeafForAlice(amount);
 
         vm.prank(alice);
         vm.expectRevert(bytes("Invalid Merkle proof"));
@@ -79,8 +82,8 @@ contract Phase5RewardsAndSlashingTest is Test {
     }
 
     function testDoubleClaimFails() public {
-        uint256 amount = 50 ether;
-        (uint256 epoch, ) = _finalizeOneLeafForAlice(amount);
+        uint amount = 50 ether;
+        (uint epoch,) = _finalizeOneLeafForAlice(amount);
 
         vm.prank(alice);
         rewards.claim(epoch, amount, _emptyProof());
@@ -91,7 +94,7 @@ contract Phase5RewardsAndSlashingTest is Test {
     }
 
     function testClaimFails_IfRootNotSet() public {
-        uint256 epoch = distributor.currentEpoch();
+        uint epoch = distributor.currentEpoch();
         vm.prank(alice);
         vm.expectRevert(bytes("Merkle root not set"));
         rewards.claim(epoch, 1 ether, _emptyProof());

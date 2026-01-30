@@ -4,15 +4,15 @@ pragma solidity ^0.8.20;
 contract RewardDistributorProd {
     address public dao;
 
-    uint256 public constant EPOCH_LENGTH = 7 days;
-    uint256 public currentEpoch;
-    uint256 public epochStart;
+    uint public constant EPOCH_LENGTH = 7 days;
+    uint public currentEpoch;
+    uint public epochStart;
 
-    mapping(uint256 => bytes32) public merkleRoots;
-    mapping(uint256 => uint256) public finalizedAt; // epoch => timestamp
-    mapping(uint256 => bool) public finalized;
+    mapping(uint => bytes32) public merkleRoots;
+    mapping(uint => uint) public finalizedAt; // epoch => timestamp
+    mapping(uint => bool) public finalized;
 
-    event EpochFinalized(uint256 indexed epoch, bytes32 root, uint256 finalizedAt);
+    event EpochFinalized(uint indexed epoch, bytes32 root, uint finalizedAt);
     event DAOChanged(address indexed oldDao, address indexed newDao);
 
     modifier onlyDAO() {

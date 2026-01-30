@@ -1,86 +1,93 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 interface ISlashingModuleV2 {
-    function slash(address user, uint256 amount, bytes32 reason) external;
+    function bonded(address account) external view returns (uint);
 }
 
+/// @notice Minimal challenge registry (Phase 4A concept).
+///         Stores challenges for off-chain resolution.
+///         Optional gate: can require an account to be bonded >= minBond to open a challenge.
+///         Phase-4: governance wiring can be frozen.
 contract ChallengeRegistry {
     IERC20 public immutable vird;
     ISlashingModuleV2 public immutable slashing;
 
     address public dao;
-    uint256 public minChallengeBond;
+    bool public frozen;
+
+    uint public minBondWei = 1 ether;
 
     struct Challenge {
         address challenger;
-        address creator;
-        bytes32 contentId;
-        uint256 bond;
-        bool resolved;
-        bool upheld;
+        address target;
         bytes32 reason;
+        uint timestamp;
     }
 
-    mapping(uint256 => Challenge) public challenges;
-    uint256 public nextId;
+    Challenge[] public challenges;
+
+    event ChallengeOpened(
+        uint indexed id, address indexed challenger, address indexed target, bytes32 reason
+    );
+    event MinBondUpdated(uint oldMin, uint newMin);
+    event DaoUpdated(address indexed oldDao, address indexed newDao);
+    event Frozen(uint timestamp);
 
     modifier onlyDAO() {
         require(msg.sender == dao, "Not DAO");
         _;
     }
 
-    event Challenged(uint256 indexed id, address indexed challenger, address indexed creator, bytes32 contentId, uint256 bond);
-    event Resolved(uint256 indexed id, bool upheld, bytes32 reason, uint256 slashAmount);
+    modifier notFrozen() {
+        require(!frozen, "Frozen");
+        _;
+    }
 
-    constructor(address _vird, address _slashing, address _dao, uint256 _minBond) {
+    constructor(address _vird, address _slashing, address _dao) {
+        require(_vird != address(0), "VIRD=0");
+        require(_slashing != address(0), "SLASHING=0");
+        require(_dao != address(0), "DAO=0");
+
         vird = IERC20(_vird);
         slashing = ISlashingModuleV2(_slashing);
         dao = _dao;
-        minChallengeBond = _minBond;
     }
 
-    function setDAO(address newDao) external onlyDAO { dao = newDao; }
-    function setMinChallengeBond(uint256 newBond) external onlyDAO { minChallengeBond = newBond; }
-
-    function openChallenge(address creator, bytes32 contentId) external returns (uint256 id) {
-        uint256 bond = minChallengeBond;
-        require(bond > 0, "Bond=0");
-        require(vird.transferFrom(msg.sender, address(this), bond), "Bond transfer failed");
-
-        id = nextId++;
-        challenges[id] = Challenge({
-            challenger: msg.sender,
-            creator: creator,
-            contentId: contentId,
-            bond: bond,
-            resolved: false,
-            upheld: false,
-            reason: bytes32(0)
-        });
-
-        emit Challenged(id, msg.sender, creator, contentId, bond);
+    function challengeCount() external view returns (uint) {
+        return challenges.length;
     }
 
-    function resolveChallenge(uint256 id, bool upheld, bytes32 reason, uint256 slashAmount) external onlyDAO {
-        Challenge storage c = challenges[id];
-        require(!c.resolved, "Already resolved");
+    /// @notice Open a challenge (requires challenger bonded >= minBondWei)
+    function openChallenge(address target, bytes32 reason) external returns (uint id) {
+        require(target != address(0), "TARGET=0");
+        require(slashing.bonded(msg.sender) >= minBondWei, "Not bonded enough");
 
-        c.resolved = true;
-        c.upheld = upheld;
-        c.reason = reason;
+        challenges.push(
+            Challenge({
+                challenger: msg.sender, target: target, reason: reason, timestamp: block.timestamp
+            })
+        );
 
-        if (upheld) {
-            if (slashAmount > 0) {
-                slashing.slash(c.creator, slashAmount, reason);
-            }
-            require(vird.transfer(c.challenger, c.bond), "Return bond failed");
-        } else {
-            require(vird.transfer(dao, c.bond), "Bond to dao failed");
-        }
+        id = challenges.length - 1;
+        emit ChallengeOpened(id, msg.sender, target, reason);
+    }
 
-        emit Resolved(id, upheld, reason, slashAmount);
+    function freeze() external onlyDAO notFrozen {
+        frozen = true;
+        emit Frozen(block.timestamp);
+    }
+
+    function setDAO(address newDao) external onlyDAO notFrozen {
+        require(newDao != address(0), "DAO=0");
+        emit DaoUpdated(dao, newDao);
+        dao = newDao;
+    }
+
+    function setMinBondWei(uint newMin) external onlyDAO notFrozen {
+        emit MinBondUpdated(minBondWei, newMin);
+        minBondWei = newMin;
     }
 }
