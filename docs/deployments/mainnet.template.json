@@ -1,0 +1,16 @@
+{
+  "chainId": 1,
+  "network": "ethereum-mainnet",
+  "safeDaoTreasury": "0xSAFE_MAINNET_HERE",
+
+  "token": {
+    "symbol": "VIRD",
+    "address": "0xTOKEN_MAINNET_HERE",
+    "owner": "0xSAFE_MAINNET_HERE"
+  },
+
+  "distributorProd": "0xDISTRIBUTOR_MAINNET_HERE",
+  "merkleRewardsProd": "0xMERKLE_MAINNET_HERE",
+  "slashingProd": "0xSLASHING_MAINNET_HERE",
+  "challengeRegistry": "0xOPTIONAL_MAINNET_HERE"
+}

@@ -1,0 +1,25 @@
+{
+  "chainId": 11155111,
+  "network": "sepolia",
+  "safeDaoTreasury": "0xef7d7D16bd38D77c750D09A08B898B575e8f5Def",
+
+  "token": {
+    "symbol": "VIRD",
+    "address": "0x57E742384F86cDB4FdbD0D78A4bD3f3D815da42F",
+    "owner": "0xef7d7D16bd38D77c750D09A08B898B575e8f5Def"
+  },
+
+  "distributorDev": "0x8BF7F061d4F53B199402aAe9830e37bE846187ce",
+
+  "v2": {
+    "merkleRewards": "0x2c73BEdcb069D1BCC97E5A22D096De0a46d51b81",
+    "slashing": "0x481517B0F723EAaC92200bBEe37694C8C05EFfC2"
+  },
+
+  "v3Freezable": {
+    "merkleRewards": "0xd6d3D818aeE43140F6d261340b4166D52C2cB1b4",
+    "slashing": "0xf343fbF0b25B8C2F74a62F1d89a4858252CA85B5",
+    "frozen": true,
+    "fundedRewardsWei": "2000000000000000000000"
+  }
+}
