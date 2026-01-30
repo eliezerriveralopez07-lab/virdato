@@ -1,34 +1,28 @@
-# Virdato Protocol Freeze (Phase 5)
+# Virdato Protocol – Freeze Confirmation (Phase 4)
 
-## Scope
-This document defines which parts of the Virdato protocol are frozen
-prior to mainnet launch.
+Network: Base (staging/test)
+Date: 2026-01-30
 
-## Frozen Components
-The following contracts are considered behavior-frozen:
+## DAO (Safe)
+0xef7d7D16bd38D77c750D09A08B898B575e8f5Def
 
-- VIRD Token
-- MerkleRewardsV2
-- SlashingModuleV2
-- RewardDistributor (DAO-controlled)
+## Contracts (V3)
+- VIRD Token: ${VIRD}
+- MerkleRewardsV3: ${MERKLE_V3}
+- SlashingModuleV3: ${SLASHING_V3}
 
-No logic changes will be made to these contracts after this phase.
+## Verified Ownership
+- Token owner(): 0xef7d7D16bd38D77c750D09A08B898B575e8f5Def
+- MerkleRewardsV3 dao(): 0xef7d7D16bd38D77c750D09A08B898B575e8f5Def
+- SlashingV3 dao(): 0xef7d7D16bd38D77c750D09A08B898B575e8f5Def
 
-## Allowed Changes
-- DAO address migration (EOA → Safe)
-- Treasury address migration
-- Epoch root publication
-- Reward amounts per epoch
-- Off-chain scoring logic
+## Freeze Status (must be true)
+- MerkleRewardsV3 frozen(): (run cast call)
+- SlashingV3 frozen(): (run cast call)
 
-## Disallowed Changes
-- Token mint logic
-- Claim verification logic
-- Slashing logic bounds
-- Double-claim prevention
+## Meaning
+- DAO Safe controls all admin actions
+- Contracts are frozen/immutable after Phase 4
+- Rewards distributed via Merkle roots per epoch and claim()
+- Slashing enforced by DAO via SlashingModuleV3
 
-## Enforcement
-- All changes must be approved via DAO Safe
-- Contract redeployments require new version tag
-
-Status: **FROZEN**
