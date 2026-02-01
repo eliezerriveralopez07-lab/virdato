@@ -1,10 +1,11 @@
-# Risk Disclosures
+# Risk Disclosures (Final Draft v1)
 
-Crypto assets involve risk, including:
+Crypto assets and smart contracts involve risk, including:
 - smart contract vulnerabilities
 - chain congestion and transaction failures
-- custody and key-loss risk
+- custody/key loss
 - volatility and loss of funds
+- phishing and malware
 - regulatory changes
 
-Virdato may modify, pause, or discontinue features for security or compliance reasons.
+Rewards may be changed, paused, reduced, or denied under integrity policies.
