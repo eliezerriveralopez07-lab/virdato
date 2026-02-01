@@ -8,7 +8,7 @@ import { AccessControl } from "@openzeppelin/contracts/access/AccessControl.sol"
 contract MyToken is ERC20, ERC20Permit, AccessControl {
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
 
-    constructor(address admin, uint initialSupply) ERC20("Virdato", "VRD") ERC20Permit("Virdato") {
+    constructor(address admin, uint initialSupply) ERC20("Virdato", "VIRD") ERC20Permit("Virdato") {
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
         _grantRole(MINTER_ROLE, admin);
         _mint(admin, initialSupply);
