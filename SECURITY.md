@@ -1,19 +1,17 @@
 # Security Policy
 
-We take security seriously. If you believe you have discovered a vulnerability, please report it responsibly.
+We take security seriously.
 
 ## Reporting a Vulnerability
-- Email: ceo@aivaulttech.com
-- Include:
-  - Clear description of the issue
-  - Steps to reproduce
-  - Impact assessment
-  - Relevant logs/screenshots (avoid sensitive personal data)
+Please email: ceo@aivaulttech.com
 
-## Responsible Disclosure Guidelines
-Please do not:
-- Publicly disclose vulnerabilities before we have time to fix them
+Include:
+- A clear description of the issue
+- Steps to reproduce
+- Impact assessment
+- Logs/screenshots (avoid sensitive personal data)
+
+## Do Not
+- Publicly disclose vulnerabilities before we have time to fix
 - Attempt to access or modify data you do not own
 - Perform denial-of-service attacks
-
-We will acknowledge receipt and work to investigate as quickly as possible.
