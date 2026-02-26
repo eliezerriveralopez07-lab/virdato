@@ -1,0 +1,16 @@
+No files changed, compilation skipped
+
+Ran 2 tests for test/VirdatoV2_clean.t.sol:VirdatoV2CleanTest
+[PASS] testClaimFailsIfRootNotSet() (gas: 19150)
+[PASS] testSlashingDaoOnly() (gas: 136769)
+Suite result: ok. 2 passed; 0 failed; 0 skipped; finished in 1.19ms (337.60µs CPU time)
+
+Ran 5 tests for test/MerkleRewardsV2_phase5.t.sol:Phase5RewardsAndSlashingTest
+[PASS] testBondAndSlashBounds() (gas: 136805)
+[PASS] testClaimFails_IfRootNotSet() (gas: 23951)
+[PASS] testDoubleClaimFails() (gas: 178275)
+[PASS] testHappyPathClaim_OneLeaf() (gas: 178899)
+[PASS] testInvalidProofFails_WhenAmountDiffers() (gas: 121375)
+Suite result: ok. 5 passed; 0 failed; 0 skipped; finished in 1.30ms (950.20µs CPU time)
+
+Ran 2 test suites in 8.09ms (2.49ms CPU time): 7 tests passed, 0 failed, 0 skipped (7 total tests)
