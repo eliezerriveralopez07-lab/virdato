@@ -4,8 +4,8 @@
 Base Mainnet (Chain ID: 8453)
 
 ## Purpose
-Define the production contracts that are deployed and controlled in the Virdato (VIRD) utility-token ecosystem.
-This scope is derived from on-chain contract code presence and ABI probes (dao/token pointers).
+Define the production contracts deployed on Base Mainnet that govern the Virdato (VIRD) utility-token reward ecosystem.
+Scope is derived from on-chain contract code presence and selector fingerprinting (function ABI).
 
 ---
 
@@ -13,48 +13,56 @@ This scope is derived from on-chain contract code presence and ABI probes (dao/t
 
 ### 1) VIRD Token (ERC-20)
 - Address: 0xAEAc353180809F99437c4F9F23aE9204cA6A123B
-- Notes: Fixed-supply utility token (on Base)
 
-### 2) Reward Module / Distributor #1
+### 2) Slashing Module (Bond/Slash/Fraud Controls)
 - Address: 0x2359276b3ec82e487c0a3c4978c9dda8c41dfcaa
-- On-chain evidence:
-  - dao() => 0xef7d7D16bd38D77c750D09A08B898B575e8f5Def
-  - token() => 0xAEAc353180809F99437c4F9F23aE9204cA6A123B
+- Selector fingerprint includes:
+  - bond(uint256), unbond(uint256), bonded(address)
+  - slash(address,uint256,bytes32)
+  - freeze(), frozen()
+  - MAX_SLASH_BPS()
+  - dao(), token(), treasury(), setDAO(address), setTreasury(address)
 
-### 3) Reward Module / Distributor #2
+### 3) Merkle Rewards / Claim Module
 - Address: 0x158938310c85d4bcac20e288d9ee34c520ae7368
-- On-chain evidence:
-  - dao() => 0xef7d7D16bd38D77c750D09A08B898B575e8f5Def
-  - token() => 0xAEAc353180809F99437c4F9F23aE9204cA6A123B
+- Selector fingerprint includes:
+  - claim(uint256,uint256,bytes32[])
+  - claimed(uint256,address)
+  - distributor()
+  - sweepToTreasury(uint256)
+  - freeze(), frozen()
+  - dao(), token(), treasury(), setDAO(address), setTreasury(address)
 
-### 4) DAO-Controlled Registry / Controller Module
+### 4) Epoch Registry / Merkle Root Registry
 - Address: 0x7946545df657735e7a378147e78d79f53cef9b41
-- On-chain evidence:
-  - dao() => 0xef7d7D16bd38D77c750D09A08B898B575e8f5Def
-  - currentEpoch() => 0
+- Selector fingerprint includes:
+  - finalizeEpoch(bytes32)
+  - epochStart(), EPOCH_LENGTH()
+  - currentEpoch()
+  - merkleRoots(uint256)
+  - finalized(uint256), finalizedAt(uint256)
+  - dao(), setDAO(address)
 
 ---
 
-## Governance / Admin Control Reference (Not “audited code”, but central to risk)
+## Governance / Admin Control Reference (Central to Risk, Not Audited Logic)
 ### DAO Safe (Admin)
 - Address: 0xef7d7D16bd38D77c750D09A08B898B575e8f5Def
-- Notes:
-  - Safe is currently configured as 1-of-1 (threshold = 1)
-  - Target state should be multi-sig (e.g., 2-of-3 or 3-of-5)
+- Safe configuration observed:
+  - threshold = 1 (1-of-1)
+  - NOTE: Not multi-sig yet; target upgrade recommended (2-of-3 or 3-of-5)
 
 ---
 
 ## Out of Scope (Disclosure / Ops)
-- Treasury and program wallets used purely for custody/accounting (where they are not program logic contracts)
-- Grants & Partnerships EOA:
-  - 0xda06dd020805162d21be10f0298a53fa2194fb26 (EOA / no contract code)
+- Grants & Partnerships wallet (EOA / no contract code):
+  - 0xda06dd020805162d21be10f0298a53fa2194fb26
 
 ---
 
 ## Security Objectives (High-Level)
-- Prevent unauthorized minting or supply changes
-- Prevent unauthorized admin actions (DAO control integrity)
-- Prevent reward/claim logic abuse, double claims, or pool drains
-- Ensure reward module authorization and parameter change controls are correct
-- Verify registry/controller invariants and epoch logic integrity
-
+- Ensure fixed supply invariant and no unauthorized minting
+- Ensure DAO authorization on admin functions (setDAO/setTreasury/freeze/finalizeEpoch)
+- Prevent claim abuse (double-claim, invalid proofs, wrong epoch)
+- Prevent slashing abuse (bounds enforcement, DAO-only slashing, freeze behavior)
+- Ensure epoch finalization integrity (root immutability per epoch, correct epoch increment)
