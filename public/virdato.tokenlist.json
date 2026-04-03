@@ -1,0 +1,15 @@
+{
+  "name": "Virdato Token List",
+  "timestamp": "2026-04-03T00:00:00Z",
+  "version": { "major": 1, "minor": 0, "patch": 0 },
+  "tokens": [
+    {
+      "chainId": 8453,
+      "address": "0xaeac353180809f99437c4f9f23ae9204ca6a123b",
+      "name": "Virdato",
+      "symbol": "VIRD",
+      "decimals": 18,
+      "logoURI": "https://raw.githubusercontent.com/eliezerriveralopez07-lab/assets/master/blockchains/base/assets/0xAEAc353180809F99437c4F9F23aE9204cA6A123B/logo.png"
+    }
+  ]
+}
