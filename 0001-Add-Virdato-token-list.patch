@@ -1,0 +1,35 @@
+From 0996085cf74a41dfd9eb9a6551b778e7dce9abae Mon Sep 17 00:00:00 2001
+From: Elliot <YOUR_GITHUB_EMAIL@domain.com>
+Date: Fri, 3 Apr 2026 09:31:21 -0400
+Subject: [PATCH] Add Virdato token list
+
+---
+ public/virdato.tokenlist.json | 15 +++++++++++++++
+ 1 file changed, 15 insertions(+)
+ create mode 100644 public/virdato.tokenlist.json
+
+diff --git a/public/virdato.tokenlist.json b/public/virdato.tokenlist.json
+new file mode 100644
+index 00000000..904c6da4
+--- /dev/null
++++ b/public/virdato.tokenlist.json
+@@ -0,0 +1,15 @@
++{
++  "name": "Virdato Token List",
++  "timestamp": "2026-04-03T00:00:00Z",
++  "version": { "major": 1, "minor": 0, "patch": 0 },
++  "tokens": [
++    {
++      "chainId": 8453,
++      "address": "0xaeac353180809f99437c4f9f23ae9204ca6a123b",
++      "name": "Virdato",
++      "symbol": "VIRD",
++      "decimals": 18,
++      "logoURI": "https://raw.githubusercontent.com/eliezerriveralopez07-lab/assets/master/blockchains/base/assets/0xAEAc353180809F99437c4F9F23aE9204cA6A123B/logo.png"
++    }
++  ]
++}
+\ No newline at end of file
+-- 
+2.51.2.windows.1
+
